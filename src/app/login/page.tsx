@@ -13,7 +13,7 @@ import { RiShieldKeyholeLine, RiSparkling2Line, RiTimerFlashLine } from "react-i
 
 function LoginCard() {
   const router = useRouter();
-  const [mode, setMode] = useState<"register" | "login" | "loading">("loading");
+  const [mode, setMode] = useState<"register" | "login" | "loading" | "error">("loading");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -29,7 +29,7 @@ function LoginCard() {
         return;
       }
       setMode(auth.registrationOpen ? "register" : "login");
-    })().catch(() => setMode("login"));
+    })().catch(() => setMode("error"));
   }, [router]);
 
   const submit = async (e: React.FormEvent) => {
@@ -46,6 +46,30 @@ function LoginCard() {
       setBusy(false);
     }
   };
+
+  if (mode === "error") {
+    return (
+      <div className="w-full max-w-md animate-in-up">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <LogoLockup size={44} />
+        </div>
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-soft">
+          <h1 className="text-base font-bold text-amber-900">Database not connected</h1>
+          <p className="mt-2 text-sm leading-relaxed text-amber-900/80">
+            The preview server is missing its database connection string
+            (<code className="rounded bg-amber-100 px-1 font-mono text-xs">DATABASE_URL</code>).
+            Add it in the app's Dyad settings (Environment variables) using the connection
+            string from your Supabase project settings, then ask me to restart the app.
+          </p>
+        </div>
+        <div className="mt-4 text-center">
+          <Link href="/" className="text-xs text-muted-foreground transition hover:text-foreground">
+            ← Back to postpilot landing
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md animate-in-up">
