@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 // Dyad/Supabase may expose the connection string under different names
 // depending on the environment (dev preview vs. isolated test runs).
+// instrumentation.ts may also assign DATABASE_URL at boot in preview mode.
 const DATABASE_URL =
   process.env.DATABASE_URL ||
   process.env.SUPABASE_DB_URL ||
