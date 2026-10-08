@@ -23,6 +23,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { ChevronDown } from "lucide-react";
 import {
   RiAddLine,
   RiBuilding2Line,
@@ -35,7 +36,6 @@ import {
   RiPieChartLine,
   RiUserSearchLine,
 } from "react-icons/ri";
-import { ChevronDown } from "lucide-react";
 
 interface WizardState {
   name: string;

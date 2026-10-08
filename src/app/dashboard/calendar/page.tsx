@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { apiGet, apiSend } from "@/lib/apiClient";
 import { DashboardShellLoader } from "@/components/app-shell";
 import { PlatformBadge } from "@/components/platform-atom";
@@ -31,12 +31,10 @@ import { toast } from "sonner";
 import {
   RiCheckboxCircleLine,
   RiCloseLine,
-  RiEditLine,
   RiErrorWarningLine,
   RiImageLine,
   RiPlayLine,
   RiRefreshLine,
-  RiSparkling2Line,
   RiTimeLine,
 } from "react-icons/ri";
 
@@ -92,7 +90,6 @@ const MONTH_NAMES = [
 const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function CalendarData() {
-  const router = useRouter();
   const params = useSearchParams();
   const clientId = params.get("client") || "";
   const now = new Date();
@@ -126,13 +123,12 @@ function CalendarData() {
     ]);
     setPosts(d.posts);
     setClientName(cal.client.name);
-    // show only platforms enabled for this client in the filter
     setPlatforms(cal.platforms);
     setAssets(m.assets);
   }, [clientId, year, month, platformFilter, statusFilter]);
 
   useEffect(() => {
-    load().catch((e) => toast.error(e.message));
+    load().catch((e) => toast.error(e instanceof Error ? e.message : "Load failed"));
   }, [load]);
 
   // ---- calendar grid math (Mon-first) ----
@@ -177,9 +173,6 @@ function CalendarData() {
       return next;
     });
 
-  const selectAllVisible = () =>
-    setSelected(new Set((posts || []).filter((p) => ["DRAFT", "APPROVED"].includes(p.status)).map((p) => p.id)));
-
   const bulkApprove = async (scope: "all" | "month" | "filtered") => {
     try {
       const body =
@@ -217,6 +210,7 @@ function CalendarData() {
     try {
       await apiSend(`/api/clients/${clientId}/posts/${postId}/regenerate`, "POST", {});
       toast.success("Post regenerated as a draft");
+      setEditing(null);
       load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Regenerate failed");
@@ -277,9 +271,6 @@ function CalendarData() {
     setYear(d.getUTCFullYear());
     setMonth(d.getUTCMonth() + 1);
   };
-
-  const canSchedulePost = (p: CalendarPost) =>
-    (p.status === "APPROVED" || p.status === "DRAFT") && (!p.mediaRequired || p.media.length > 0);
 
   if (!clientId) {
     return (
@@ -375,18 +366,6 @@ function CalendarData() {
           </div>
         )}
         <div className="ml-auto flex items-center gap-2 text-[11px] text-muted-foreground">
-          {(platforms.length ? platforms : []).slice(0, 7).map((p) => (
-            <span key={p.platform} className="flex items-center gap-1">
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{
-                  backgroundColor: isPlatformId(p.platform)
-                    ? PLATFORM_RULES[p.platform as PlatformId].accentHex
-                    : "#999",
-                }}
-              />
-            </span>
-          ))}
           <span>color = platform · dot = status</span>
         </div>
       </div>
@@ -420,8 +399,10 @@ function CalendarData() {
                       key={p.id}
                       onClick={() => setEditing(p)}
                       data-testid={`post-${p.id}`}
-                      className="block w-full rounded-lg border-l-3 bg-secondary/70 p-1.5 text-left transition hover:bg-secondary"
-                      style={{ borderLeftColor: isPlatformId(p.platform) ? PLATFORM_RULES[p.platform as PlatformId].accentHex : "#999" }}
+                      className="block w-full rounded-lg bg-secondary/70 p-1.5 text-left transition hover:bg-secondary"
+                      style={{
+                        borderLeft: `3px solid ${isPlatformId(p.platform) ? PLATFORM_RULES[p.platform as PlatformId].accentHex : "#999"}`,
+                      }}
                     >
                       <span className="flex items-center gap-1">
                         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT[p.status] || "bg-slate-300"}`} />
@@ -450,7 +431,7 @@ function CalendarData() {
 
       {/* Bulk selection bar (mobile) */}
       {selected.size > 0 && (
-        <div className="fixed inset-x-4 bottom-4 z-40 flex items-center justify-between rounded-2xl bg-[hsl(var(--sidebar-background))] p-3 text-white shadow-lift lg:hidden">
+        <div className="fixed inset-x-4 bottom-4 z-40 flex items-center justify-between rounded-2xl bg-[hsl(var(--sidebar-background))] p-3 text-white shadow-lift sm:hidden">
           <span className="text-sm font-semibold">{selected.size} selected</span>
           <div className="flex gap-2">
             <Button size="sm" className="rounded-full" onClick={() => bulkApprove("filtered")}>
@@ -528,9 +509,12 @@ function CalendarData() {
                 )}
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Body {editing.mediaRequired && !editing.media.length && (
-                    <span className="ml-1 text-amber-600">· media required before scheduling</span>
-                  )}</Label>
+                  <Label className="text-xs">
+                    Body{" "}
+                    {editing.mediaRequired && !editing.media.length && (
+                      <span className="ml-1 text-amber-600">· media required before scheduling</span>
+                    )}
+                  </Label>
                   <Textarea
                     data-testid="post-body-input"
                     rows={8}
@@ -580,7 +564,7 @@ function CalendarData() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {editing.media.map((m) => (
-                      <div key={m.id} className="group relative flex items-center gap-1.5 rounded-lg border bg-white px-2 py-1.5 text-[11px]">
+                      <div key={m.id} className="flex items-center gap-1.5 rounded-lg border bg-white px-2 py-1.5 text-[11px]">
                         {m.kind === "youtube" ? "▶ YouTube" : m.kind}
                         <span className="max-w-24 truncate text-muted-foreground">{m.fileName}</span>
                         <button

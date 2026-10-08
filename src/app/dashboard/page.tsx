@@ -13,13 +13,11 @@ import { toast } from "sonner";
 import {
   RiFileList2Line,
   RiErrorWarningLine,
-  RiImageLine,
   RiPlayLine,
   RiSparkling2Line,
-  RiCheckboxCircleLine,
   RiRefreshLine,
 } from "react-icons/ri";
-import { PLATFORM_RULES, isPlatformId } from "@/lib/platforms";
+import { PLATFORM_RULES, isPlatformId, type PlatformId } from "@/lib/platforms";
 
 interface OverviewClient {
   id: string;
@@ -57,12 +55,8 @@ interface FailedPost {
   failureDetail?: string | null;
   scheduledAttempts: number;
 }
-interface FailedQuery {
-  posts: FailedPost[];
-}
 
 function DashboardData() {
-  const router = useRouter();
   const params = useSearchParams();
   const [data, setData] = useState<{
     client: OverviewClient;
@@ -79,55 +73,55 @@ function DashboardData() {
   });
   const [retrying, setRetrying] = useState<string | null>(null);
 
-  const load = useCallback(async (clientId: string) => {
+  const clientId = params.get("client") || "";
+
+  const load = useCallback(async (id: string) => {
     const [d, f] = await Promise.all([
       apiGet<{ client: OverviewClient; platforms: PlatformRow[]; platformAccounts: AccountRow[]; counts: Counts }>(
-        `/api/clients/${clientId}/calendar`
+        `/api/clients/${id}/calendar`
       ),
-      apiGet<FailedQuery>(`/api/clients/${clientId}/posts?status=FAILED`),
+      apiGet<{ posts: FailedPost[] }>(`/api/clients/${id}/posts?status=FAILED`),
     ]);
     setData(d);
     setFailed(f.posts);
   }, []);
 
-  const clientId = params.get("client") || "";
+  const startGeneration = useCallback(
+    async (id: string) => {
+      setGenState({ running: true, label: "Starting…", current: 0, total: 12 });
+      try {
+        await apiSend(`/api/clients/${id}/generate`, "POST", {});
+        for (let step = 1; step <= 12; step++) {
+          const r = await apiSend<{ ok: boolean; monthLabel: string; error?: string }>(
+            `/api/clients/${id}/generate/step`,
+            "POST"
+          );
+          if (!r.ok) {
+            toast.error(`Batch failed for ${r.monthLabel}: ${r.error || "unknown error"}`);
+            break;
+          }
+          setGenState({ running: true, label: `Generating ${r.monthLabel}`, current: step, total: 12 });
+          load(id).catch(() => {});
+        }
+        toast.success("12-month plan generated");
+        load(id).catch(() => {});
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Generation failed");
+      } finally {
+        setGenState({ running: false, label: "", current: 0, total: 0 });
+      }
+    },
+    [load]
+  );
 
   useEffect(() => {
     if (!clientId) return;
-    load(clientId).catch((e) => toast.error(e.message));
-    // Auto-start generation when arriving from the wizard (generate=1)
+    load(clientId).catch((e) => toast.error(e instanceof Error ? e.message : "Load failed"));
     if (params.get("generate") === "1") {
-      setGenState({ running: true, label: "Starting…", current: 0, total: 12 });
-      startGeneration(clientId).catch(() => setGenState({ running: false, label: "", current: 0, total: 0 }));
+      startGeneration(clientId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
-
-  const startGeneration = async (cid: string) => {
-    setGenState({ running: true, label: "Starting…", current: 0, total: 12 });
-    try {
-      await apiSend(`/api/clients/${cid}/generate`, "POST", {});
-      for (let step = 1; step <= 12; step++) {
-        const r = await apiSend<{ ok: boolean; monthLabel: string; error?: string }>(
-          `/api/clients/${cid}/generate/step`,
-          "POST"
-        );
-        if (!r.ok) {
-          toast.error(`Batch failed for ${r.monthLabel}: ${r.error || "unknown error"}`);
-          break;
-        }
-        setGenState({ running: true, label: `Generating ${r.monthLabel}`, current: step, total: 12 });
-        load(cid).catch(() => {});
-      }
-      toast.success("12-month plan generated");
-      load(cid).catch(() => {});
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Generation failed");
-    } finally {
-      setGenState({ running: false, label: "", current: 0, total: 0 });
-      load(clientId).catch(() => {});
-    }
-  };
 
   const retryFailed = async (postId: string) => {
     if (!clientId) return;
@@ -231,12 +225,10 @@ function DashboardData() {
       {/* Needs-attention tray */}
       {failed.length > 0 && (
         <div className="rounded-2xl border border-red-200 bg-red-50/60 p-5" data-testid="needs-attention">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="flex items-center gap-2 text-sm font-bold text-red-800">
-              <RiErrorWarningLine className="h-4 w-4" /> Needs attention — {failed.length} failed
-              {failed.length === 1 ? " post" : " posts"}
-            </h3>
-          </div>
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-red-800">
+            <RiErrorWarningLine className="h-4 w-4" /> Needs attention — {failed.length} failed
+            {failed.length === 1 ? " post" : " posts"}
+          </h3>
           <div className="space-y-2.5">
             {failed.map((f) => (
               <div
@@ -315,7 +307,7 @@ function DashboardData() {
           <h3 className="mb-4 text-sm font-bold">Platforms &amp; connected accounts</h3>
           <div className="space-y-2.5">
             {data.platforms.map((p) => {
-              const rules = isPlatformId(p.platform) ? PLATFORM_RULES[p.platform as keyof typeof PLATFORM_RULES] : null;
+              const rules = isPlatformId(p.platform) ? PLATFORM_RULES[p.platform as PlatformId] : null;
               const accounts = data.platformAccounts.filter((a) => a.platform === p.platform);
               return (
                 <div key={p.platform} className="flex items-center gap-2.5">

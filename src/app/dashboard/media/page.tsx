@@ -45,7 +45,7 @@ function MediaData() {
   }, [clientId]);
 
   useEffect(() => {
-    load().catch((e) => toast.error(e.message));
+    load().catch((e) => toast.error(e instanceof Error ? e.message : "Load failed"));
   }, [load]);
 
   const upload = async (files: FileList | null) => {
@@ -102,7 +102,13 @@ function MediaData() {
   };
 
   const kindIcon = (kind: string) =>
-    kind === "youtube" ? <RiYoutubeLine className="h-4 w-4 text-red-600" /> : kind === "video" ? <RiVideoLine className="h-4 w-4 text-violet-600" /> : <RiImageLine className="h-4 w-4 text-sky-600" />;
+    kind === "youtube" ? (
+      <RiYoutubeLine className="h-4 w-4 text-red-600" />
+    ) : kind === "video" ? (
+      <RiVideoLine className="h-4 w-4 text-violet-600" />
+    ) : (
+      <RiImageLine className="h-4 w-4 text-sky-600" />
+    );
 
   if (!clientId) {
     return (
@@ -168,7 +174,7 @@ function MediaData() {
           <RiImageLine className="mx-auto h-10 w-10 text-muted-foreground/50" />
           <h2 className="mt-3 text-lg font-bold">No media yet</h2>
           <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-            Instagram, TikTok, and YouTube posts can't schedule without media. Upload here and it stays reusable
+            Instagram, TikTok, and YouTube posts can't schedule without media. Upload here — assets stay reusable
             across posts.
           </p>
         </div>

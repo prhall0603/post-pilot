@@ -19,7 +19,6 @@ import {
   RiMoreLine,
   RiRocketLine,
   RiDeleteBinLine,
-  RiCheckboxCircleLine,
   RiErrorWarningLine,
   RiTimerFlashLine,
   RiImageLine,
@@ -188,8 +187,8 @@ function ClientsData() {
                 </div>
 
                 <div className="mt-4 flex items-center justify-between border-t pt-3 text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <span className="font-mono">{c.locationId ? `GHL · ${c.locationId.slice(0, 16)}` : "No sub-account"}</span>
+                  <span className="font-mono">
+                    {c.locationId ? `GHL · ${c.locationId.slice(0, 16)}` : "No sub-account"}
                   </span>
                   <span className="flex items-center gap-1">
                     <RiTimerFlashLine className="h-3 w-3" />${c.aiCostEstimated.toFixed(2)} est. AI cost

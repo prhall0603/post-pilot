@@ -69,10 +69,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   }
   const safeName = (file.name || "upload").replace(/[^\w.\- ]+/g, "_").slice(0, 120);
   const fileName = `${client.id.slice(0, 8)}-${Date.now().toString(36)}-${safeName}`;
-  const { writeFile } = await import("node:fs/promises");
+  const { writeFile, mkdir } = await import("node:fs/promises");
   const path = await import("node:path");
   const dir = path.join(process.cwd(), "public", "uploads", id);
-  await writeFile(dir, "", { flag: "a" }).catch(() => {}); // ensure dir exists
+  await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, fileName), buf);
 
   const asset = await prisma.mediaAsset.create({

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { generateMonth, monthName } from "@/lib/ai";
+import { generateMonth } from "@/lib/ai";
 import { isPlatformId, type PlatformId } from "@/lib/platforms";
 
 /** POST /api/clients/[id]/posts/[postId]/regenerate — AI-regenerate a single post. */

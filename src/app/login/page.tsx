@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { apiGet, apiSend } from "@/lib/apiClient";
 import { LogoLockup } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import { RiShieldKeyholeLine, RiSparkling2Line, RiTimerFlashLine } from "react-i
 
 function LoginCard() {
   const router = useRouter();
-  const params = useSearchParams();
   const [mode, setMode] = useState<"register" | "login" | "loading">("loading");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

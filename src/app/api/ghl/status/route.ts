@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ghlConfigured, getConnectionMode } from "@/lib/ghl";
+import { ghlConfigured } from "@/lib/ghl";
 import { aiMode } from "@/lib/ai";
 import { limiterStats } from "@/lib/rateLimiter";
 

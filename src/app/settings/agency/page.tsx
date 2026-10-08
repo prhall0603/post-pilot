@@ -65,9 +65,8 @@ function AgencySettings() {
     setAgency(a.agency);
   }, []);
 
-  const refresh = useCallback(load, [load]);
   useEffect(() => {
-    load().catch((e) => toast.error(e.message));
+    load().catch((e) => toast.error(e instanceof Error ? e.message : "Load failed"));
     // surface callback result banners
     const result = params.get("ghl");
     if (result === "connected") toast.success("GHL connected — agency tokens stored encrypted");
@@ -82,7 +81,7 @@ function AgencySettings() {
     try {
       await apiSend("/api/ghl/connect", "POST", { demo: true });
       toast.success("Demo Mode connected — simulated GHL active");
-      refresh();
+      load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Connect failed");
     } finally {
@@ -112,7 +111,7 @@ function AgencySettings() {
     try {
       await apiSend("/api/ghl/disconnect", "POST", {});
       toast.success("Disconnected — reverted to Demo Mode");
-      refresh();
+      load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Disconnect failed");
     } finally {
@@ -125,41 +124,16 @@ function AgencySettings() {
       await apiSend("/api/agency", "PATCH", { demoMode });
       toast.success(demoMode ? "Demo Mode on — simulated GHL & AI" : "Live mode — real GHL and AI in use");
       setAgency((a) => (a ? { ...a, demoMode } : a));
-      refresh();
+      load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Toggle failed");
     }
   };
 
-  const signedIn = async () => {
-    try {
-      const auth = await apiGet<{ authenticated: boolean; email?: string }>("/api/auth");
-      if (!auth.authenticated) {
-        window.location.href = "/login";
-        return false;
-      }
-      setAuthenticatedEmail(auth.email || "");
-      return true;
-    } catch {
-      window.location.href = "/login";
-      return false;
-    }
-  };
-
-  const [authenticatedEmail, setAuthenticatedEmail] = useState("");
   const signOut = async () => {
     await apiSend("/api/auth", "POST", { action: "logout" });
     window.location.href = "/login";
   };
-
-  const go = async () => {
-    const ok = await signedIn();
-    if (ok) refresh().catch(() => {});
-  };
-  useEffect(() => {
-    go();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   if (!status || !agency) {
     return (
@@ -189,7 +163,7 @@ function AgencySettings() {
             <Link href="/dashboard" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground">
               <RiDashboard2Line className="h-3.5 w-3.5" /> Dashboard
             </Link>
-            <span className="text-xs text-muted-foreground">{authenticatedEmail || agency?.email}</span>
+            <span className="text-xs text-muted-foreground">{agency.email}</span>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut} title="Sign out">
               <RiLogoutBoxRLine className="h-4 w-4" />
             </Button>
@@ -301,7 +275,7 @@ function AgencySettings() {
             <h2 className="flex items-center gap-2 text-sm font-bold">
               <RiDashboard2Line className="h-4 w-4 text-primary" /> Rate limits
             </h2>
-            <Button variant="ghost" size="sm" className="rounded-full" onClick={refresh}>
+            <Button variant="ghost" size="sm" className="rounded-full" onClick={load}>
               <RiRefreshLine className="h-3.5 w-3.5" /> Refresh
             </Button>
           </div>

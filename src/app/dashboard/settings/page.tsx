@@ -118,7 +118,7 @@ function SettingsData() {
   }, [clientId]);
 
   useEffect(() => {
-    load().catch((e) => toast.error(e.message));
+    load().catch((e) => toast.error(e instanceof Error ? e.message : "Load failed"));
   }, [load]);
 
   const saveProfile = async () => {
@@ -198,7 +198,6 @@ function SettingsData() {
 
   const uploadLogo = async (file: File) => {
     try {
-      await apiSend(`/api/clients/${clientId}`, "PATCH", {}).catch(() => {});
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch(`/api/upload/logo?clientId=${clientId}`, { method: "POST", body: fd });
