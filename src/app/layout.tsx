@@ -26,7 +26,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={manrope.variable}>
       <body className="font-sans antialiased">{children}</body>
-      <Toaster position="top-center" richColors />
+      <div>
+        <Toaster position="top-center" richColors />
+      </div>
     </html>
   );
 }

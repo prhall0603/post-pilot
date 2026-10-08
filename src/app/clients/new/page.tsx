@@ -27,7 +27,6 @@ import {
   RiAddLine,
   RiBuilding2Line,
   RiCheckLine,
-  RiChevronDownSLine,
   RiCloseLine,
   RiDeleteBinLine,
   RiGlobalLine,
@@ -36,6 +35,7 @@ import {
   RiPieChartLine,
   RiUserSearchLine,
 } from "react-icons/ri";
+import { ChevronDown } from "lucide-react";
 
 interface WizardState {
   name: string;
@@ -272,7 +272,7 @@ export default function NewClientPage() {
                     ) : (
                       <span className="text-muted-foreground">Select a sub-account…</span>
                     )}
-                    <RiChevronDownSLine className="h-4 w-4 shrink-0 opacity-50" />
+                    <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { apiGet, apiSend } from "@/lib/apiClient";
@@ -356,7 +356,15 @@ function AgencySettings() {
 export default function AgencyPage() {
   return (
     <div className="bg-background">
-      <AgencySettings />
+      <Suspense
+        fallback={
+          <div className="flex min-h-screen items-center justify-center bg-background">
+            <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-primary border-t-transparent" />
+          </div>
+        }
+      >
+        <AgencySettings />
+      </Suspense>
     </div>
   );
 }
