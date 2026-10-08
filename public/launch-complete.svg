@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 340" fill="none">
+  <!-- Wizard completion: rocket launching from a completed checklist -->
+  <rect x="64" y="60" width="220" height="240" rx="20" fill="#EEF2FF"/>
+  <rect x="64" y="60" width="220" height="56" rx="20" fill="#4F46E5" fill-opacity="0.12"/>
+  <g fill="#4F46E5">
+    <rect x="88" y="92" width="26" height="26" rx="8"/>
+    <rect x="88" y="136" width="26" height="26" rx="8"/>
+    <rect x="88" y="180" width="26" height="26" rx="8"/>
+    <rect x="88" y="224" width="26" height="26" rx="8"/>
+  </g>
+  <g stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="m94 105 5 5 9-10"/>
+    <path d="m94 149 5 5 9-10"/>
+  </g>
+  <path d="m94 193 5 5 9-10" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <g fill="#C7D2FE">
+    <rect x="126" y="98" width="120" height="10" rx="5"/>
+    <rect x="126" y="142" width="140" height="10" rx="5"/>
+    <rect x="126" y="186" width="96" height="10" rx="5"/>
+    <rect x="126" y="230" width="120" height="10" rx="5"/>
+  </g>
+  <!-- rocket -->
+  <g transform="translate(300 66) rotate(6)">
+    <path d="M52 .5c22 14.8 34 37 34 62l-11 21h-46L18 62.5c0-25 12-47.2 34-62Z" fill="#4F46E5"/>
+    <circle cx="52" cy="52" r="15" fill="#E0F2FE"/>
+    <circle cx="52" cy="52" r="8" fill="#4F46E5" fill-opacity="0.35"/>
+    <path d="M29 84 6 122l30-15 8-23h-15Z" fill="#A5F3EB"/>
+    <path d="m75 84 23 38-30-15-8-23h15Z" fill="#A5F3EB"/>
+    <path d="M40 84h24l-3 30c-1 7-17 7-18 0l-3-30Z" fill="#F59E0B"/>
+    <path d="M46 118c2 10 4 18 6 26 2-8 4-16 6-26h-12Z" fill="#FDBA74"/>
+  </g>
+  <!-- confetti -->
+  <circle cx="298" cy="40" r="7" fill="#F59E0B"/>
+  <circle cx="452" cy="120" r="8" fill="#A5F3EB"/>
+  <circle cx="420" cy="30" r="6" fill="#C7D2FE"/>
+  <rect x="330" y="18" width="14" height="8" rx="4" fill="#F472B6" transform="rotate(18 330 18)"/>
+  <rect x="440" y="200" width="14" height="8" rx="4" fill="#4F46E5" fill-opacity="0.4" transform="rotate(-14 440 200)"/>
+  <rect x="268" y="230" width="14" height="8" rx="4" fill="#FDBA74" transform="rotate(24 268 230)"/>
+</svg>

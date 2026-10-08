@@ -1,0 +1,277 @@
+// PostPilot schema — multi-tenant agency workspace on PostgreSQL (Supabase).
+// Table/column names deliberately lowercased via @@map to match the provisioned
+// Supabase schema (post, postmedia, ghlconnection, etc.).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------
+// AUTH / TENANCY
+// ----------------------------------------
+
+model Agency {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("passwordHash")
+  demoMode     Boolean  @default(true) @map("demoMode")
+  createdAt    DateTime @default(now()) @map("createdAt") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updatedAt") @db.Timestamptz(6)
+
+  clients       Client[]
+  ghlConnection GhLConnection?
+  sessions      Session[]
+  tokenEvents   TokenEvent[]
+
+  @@map("agency")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  tokenHash String   @unique @map("tokenHash")
+  agencyId  String   @map("agencyId") @db.Uuid
+  createdAt DateTime @default(now()) @map("createdAt") @db.Timestamptz(6)
+  expiresAt DateTime @map("expiresAt") @db.Timestamptz(6)
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId])
+  @@map("session")
+}
+
+// ----------------------------------------
+// GHL INTEGRATION
+// ----------------------------------------
+
+model GhLConnection {
+  id              String    @id @default(uuid()) @db.Uuid
+  agencyId        String    @unique @map("agencyId") @db.Uuid
+  mode            GhlMode   @default(DEMO)
+  clientId        String?   @map("clientId")
+  clientSecretEnc String?   @map("clientSecretEnc")
+  accessTokenEnc  String?   @map("accessTokenEnc")
+  refreshTokenEnc String?   @map("refreshTokenEnc")
+  tokenType       String    @default("Agency") @map("tokenType")
+  expiresAt       DateTime? @map("expiresAt") @db.Timestamptz(6)
+  scope           String?
+  locationId      String?   @map("locationId")
+  userId          String?   @map("userId")
+  lastRefreshedAt DateTime? @map("lastRefreshedAt") @db.Timestamptz(6)
+  lastError       String?   @map("lastError")
+  connectedAt     DateTime? @map("connectedAt") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updatedAt") @db.Timestamptz(6)
+  agency          Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@map("ghlconnection")
+}
+
+enum GhlMode {
+  DEMO
+  LIVE
+
+  @@map("GhlMode")
+}
+
+model TokenEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  agencyId  String   @map("agencyId") @db.Uuid
+  kind      String
+  detail    String?
+  createdAt DateTime @default(now()) @map("createdAt") @db.Timestamptz(6)
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, createdAt])
+  @@map("tokenevent")
+}
+
+// ----------------------------------------
+// CLIENTS
+// ----------------------------------------
+
+model Client {
+  id                String     @id @default(uuid()) @db.Uuid
+  agencyId          String     @map("agencyId") @db.Uuid
+  name              String
+  industry          String
+  website           String?
+  locationId        String?    @map("locationId")
+  brandVoice        String     @default("professional") @map("brandVoice")
+  brandVoiceNotes   String?    @map("brandVoiceNotes")
+  targetAudience    String?    @map("targetAudience")
+  serviceArea       String?    @map("serviceArea")
+  logoUrl           String?    @map("logoUrl")
+  planStatus        PlanStatus @default(NOT_GENERATED) @map("planStatus")
+  generatedUntil    DateTime?  @map("generatedUntil") @db.Timestamptz(6)
+  schedulingCursor  DateTime?  @map("schedulingCursor") @db.Timestamptz(6)
+  aiTokensEstimated Int        @default(0) @map("aiTokensEstimated")
+  aiCostEstimated   Float      @default(0) @map("aiCostEstimated")
+  createdAt         DateTime   @default(now()) @map("createdAt") @db.Timestamptz(6)
+  updatedAt         DateTime   @updatedAt @map("updatedAt") @db.Timestamptz(6)
+  agency            Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  platforms        ClientPlatform[]
+  products         Product[]
+  blackoutDates    BlackoutDate[]
+  posts            Post[]
+  mediaAssets      MediaAsset[]
+  platformAccounts PlatformAccount[]
+  scheduledRuns    ScheduledRun[]
+
+  @@index([agencyId])
+  @@map("client")
+}
+
+enum PlanStatus {
+  NOT_GENERATED
+  GENERATING
+  GENERATED
+
+  @@map("PlanStatus")
+}
+
+model ClientPlatform {
+  id           String   @id @default(uuid()) @db.Uuid
+  clientId     String   @map("clientId") @db.Uuid
+  platform     String
+  cadenceWeekly Int     @default(3) @map("cadenceWeekly")
+  createdAt    DateTime @default(now()) @map("createdAt") @db.Timestamptz(6)
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, platform])
+  @@map("clientplatform")
+}
+
+model Product {
+  id          String @id @default(uuid()) @db.Uuid
+  clientId    String @map("clientId") @db.Uuid
+  name        String
+  description String
+  client      Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@map("product")
+}
+
+model BlackoutDate {
+  id       String   @id @default(uuid()) @db.Uuid
+  clientId String   @map("clientId") @db.Uuid
+  date     DateTime @db.Date
+  reason   String
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@map("blackoutdate")
+}
+
+model PlatformAccount {
+  id           String    @id @default(uuid()) @db.Uuid
+  clientId     String    @map("clientId") @db.Uuid
+  locationId   String    @map("locationId")
+  platform     String
+  ghlAccountId String    @map("ghlAccountId")
+  accountName  String    @map("accountName")
+  avatarUrl    String?   @map("avatarUrl")
+  lastSyncedAt DateTime? @map("lastSyncedAt") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("createdAt") @db.Timestamptz(6)
+  client       Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, platform, ghlAccountId])
+  @@index([clientId])
+  @@map("platformaccount")
+}
+
+model ScheduledRun {
+  id        String   @id @default(uuid()) @db.Uuid
+  clientId  String   @map("clientId") @db.Uuid
+  monthStart DateTime @map("monthStart") @db.Timestamptz(6)
+  status    String   @default("completed")
+  scheduled Int      @default(0)
+  failed    Int      @default(0)
+  detail    String?
+  createdAt DateTime @default(now()) @map("createdAt") @db.Timestamptz(6)
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@map("scheduledrun")
+}
+
+// ----------------------------------------
+// CONTENT PLAN
+// ----------------------------------------
+
+enum PostStatus {
+  DRAFT
+  APPROVED
+  SCHEDULED
+  FAILED
+  POSTED
+
+  @@map("PostStatus")
+}
+
+model Post {
+  id                String     @id @default(uuid()) @db.Uuid
+  clientId          String     @map("clientId") @db.Uuid
+  platform          String
+  scheduledDate     DateTime   @map("scheduledDate") @db.Date
+  time              String     @default("09:00")
+  body              String     @db.Text
+  imagePrompt       String?    @map("imagePrompt") @db.Text
+  videoScript       String?    @map("videoScript") @db.Text
+  hashtags          String?
+  status            PostStatus @default(DRAFT)
+  contentTopic      String     @map("contentTopic")
+  category          String
+  mediaRequired     Boolean    @default(false) @map("mediaRequired")
+  ghlAccountId      String?    @map("ghlAccountId")
+  failureReason     String?    @map("failureReason")
+  failureDetail     String?    @map("failureDetail")
+  scheduledAttempts Int        @default(0) @map("scheduledAttempts")
+  scheduledAt       DateTime?  @map("scheduledAt") @db.Timestamptz(6)
+  ghlPostId         String?    @map("ghlPostId")
+  title             String?
+  createdAt         DateTime   @default(now()) @map("createdAt") @db.Timestamptz(6)
+  updatedAt         DateTime   @updatedAt @map("updatedAt") @db.Timestamptz(6)
+  client            Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  media             PostMedia[]
+
+  @@index([clientId, scheduledDate])
+  @@index([clientId, status])
+  @@index([platform])
+  @@map("post")
+}
+
+model PostMedia {
+  id           String     @id @default(uuid()) @db.Uuid
+  postId       String     @map("postId") @db.Uuid
+  mediaAssetId String     @map("mediaAssetId") @db.Uuid
+  order        Int        @default(0)
+  post         Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("postmedia")
+}
+
+model MediaAsset {
+  id          String    @id @default(uuid()) @db.Uuid
+  clientId    String    @map("clientId") @db.Uuid
+  kind        String // image | video | youtube
+  fileName    String?   @map("fileName")
+  url         String? // local /uploads/... served url or external link
+  ghlUrl      String?   @map("ghlUrl")
+  ghlMediaId  String?   @map("ghlMediaId")
+  mimeType    String?   @map("mimeType")
+  sizeBytes   Int?      @map("sizeBytes")
+  youtubeId   String?   @map("youtubeId")
+  createdAt   DateTime  @default(now()) @map("createdAt") @db.Timestamptz(6)
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  usedInPosts PostMedia[]
+
+  @@index([clientId])
+  @@map("mediaasset")
+}
