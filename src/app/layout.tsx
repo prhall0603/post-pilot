@@ -25,10 +25,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={manrope.variable}>
-      <body className="font-sans antialiased">{children}</body>
-      <div>
+      <body className="font-sans antialiased">
+        {children}
         <Toaster position="top-center" richColors />
-      </div>
+      </body>
     </html>
   );
 }
