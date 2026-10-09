@@ -14,10 +14,30 @@ Stack: **Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Pris
 The app is pure TypeScript/Node — it runs identically on all three operating
 systems. Use the commands for your OS below.
 
+### ⚡ One-command setup (clones + installs + runs)
+
+Paste this single line into PowerShell (Windows), Terminal (macOS), or
+bash/zsh (Linux). It prints its own prerequisites if anything's missing:
+
+```bash
+bash -c "$(git clone https://github.com/YOUR-ORG/postpilot.git 2>/dev/null && cd postpilot && npx -y pnpm@latest install && npx -y prisma@latest generate && echo '✔ Dependencies installed. Run:  cd postpilot && npx pnpm dev')" || { echo '❌ Git or Node is missing — install Node.js 20 (includes corepack/pnpm support) from https://nodejs.org and Git from https://git-scm.com, then rerun this command.'; }
+```
+
+Already have the repo cloned? The one-liner below does install + generate +
+dev server start in one shot from the project root:
+
+```bash
+npx -y pnpm@latest install && npx -y prisma@latest generate && npx -y pnpm@latest dev
+```
+
+(Windows note: run it in **PowerShell** — `npx` resolves identically; if
+`npx` is missing, install Node.js from nodejs.org which bundles it.)
+
 ### Prerequisites (all OSes)
 
 - **Node.js 18.18+** (20+ recommended) — [nodejs.org](https://nodejs.org)
 - **pnpm** (`corepack enable` ships with Node) or npm/yarn
+- **Git** (for the clone command; skip if you already have the code)
 - A **PostgreSQL database** (Supabase project recommended)
 
 ### 1. Install & configure (all OSes)
