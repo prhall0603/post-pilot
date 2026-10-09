@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PostPilot
 
-## Getting Started
+Agency-level social media content planning + scheduling through GoHighLevel.
+Generate a full year of platform-tuned posts per client (monthly batches),
+review on a calendar, and schedule approved posts to GHL's Social Planner
+across a rolling 3-month window.
 
-First, run the development server:
+Stack: **Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Prisma · PostgreSQL (Supabase)**
+
+---
+
+## Running on Windows, macOS, and Linux
+
+The app is pure TypeScript/Node — it runs identically on all three operating
+systems. Use the commands for your OS below.
+
+### Prerequisites (all OSes)
+
+- **Node.js 18.18+** (20+ recommended) — [nodejs.org](https://nodejs.org)
+- **pnpm** (`corepack enable` ships with Node) or npm/yarn
+- A **PostgreSQL database** (Supabase project recommended)
+
+### 1. Install & configure (all OSes)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install        # also runs `prisma generate` via postinstall
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create `.env.local` in the project root (or set the variable in your host):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+DATABASE_URL="postgresql://postgres.<project-ref>:<PASSWORD>@aws-0-<region>.pooler.supabase.com:5432/postgres"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Optional variables:
 
-## Learn More
+```
+AI_API_KEY=...            # Ollama cloud key; absent → built-in demo generator
+AI_BASE_URL=...           # default https://api.ollama.com/v1
+AI_MODEL=...              # default gpt-oss:120b
+GHL_CLIENT_ID=...         # marketplace app creds (LIVE OAuth)
+GHL_CLIENT_SECRET=...
+GHL_REDIRECT_URI=...
+ENCRYPTION_KEY=...        # AES key for stored tokens
+APP_ORIGIN=...            # absolute origin for local-media fetches
+```
 
-To learn more about Next.js, take a look at the following resources:
+> **Supabase note:** direct `db.<ref>.supabase.co` hostnames are IPv6-only on
+> many networks — prefer the **session pooler** URI from Supabase's Connect
+> dialog. The app also auto-rewrites direct hosts to the pooler when
+> connecting a BYO database.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 2. macOS / Linux
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm dev             # development server (http://localhost:3000)
+pnpm build && pnpm start   # production
+```
 
-## Deploy on Vercel
+Nothing else required — paths are handled with `path.join`, no case-sensitivity
+issues, no shell scripts in the pipeline.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 3. Windows (PowerShell)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```powershell
+pnpm dev
+```
+
+Notes for Windows:
+
+- Run commands from **PowerShell** or **Windows Terminal** (cmd works too).
+  There are no bash-specific scripts.
+- `longPaths` — if you hit `EPERM`/path-too-long errors from deep
+  `node_modules` chains (pnpm), enable long paths once as admin:
+  ```powershell
+  Set-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem -Name LongPathsEnabled -Value 1
+  ```
+- **Case sensitivity:** the repo is portable (no case-dependent imports), but
+  keep the project in a normal NTFS location, not a WSL mount or case-sensitive
+  folder mix.
+- Antivirus can slow first `node_modules` install — add the project folder to
+  exclusions if scans throttle it.
+
+### 4. WSL2 (Windows alternative)
+
+Works out of the box: install Node inside WSL, clone/copy the project inside
+the WSL filesystem (not `/mnt/c`), run `pnpm dev`. The server binds to your
+network interface, so reach it from Windows at the printed Network URL.
+
+### 5. Production build (any OS)
+
+```bash
+pnpm build
+pnpm start
+```
+
+The build runs on Node for Windows/macOS/Linux and any Node host (bare
+server, Docker, cloud). One caveat: uploaded media is stored under
+`public/uploads/` on the server's filesystem — for multi-instance
+production deployments, mount that folder on shared storage or move media to
+object storage.
+
+---
+
+## Cross-platform design notes
+
+- All file writes use `node:path.join` + `mkdir recursive` — correct separators
+  on every OS.
+- No `process.platform` branches, no shell-outs, no OS-specific APIs anywhere
+  in the codebase.
+- Passwords/tokens use Node's built-in `crypto` (available on all platforms).
+- Media URLs are built from the request origin or `APP_ORIGIN`/test base URL —
+  never hardcoded localhost.
+
+## Feature map
+
+- `/login` — agency auth (first run creates the workspace; Demo Mode default)
+- `/onboarding` — database (hosted vs client's own Supabase) + GHL connection
+  (Demo / Private Integration token / Marketplace OAuth)
+- `/clients`, `/clients/new` — Stage 1 onboarding wizard (sub-account, voice,
+  services, 7 platforms + cadence, blackouts)
+- `/dashboard` — overview, batched 12-month generation with progress,
+  Needs-attention tray
+- `/dashboard/calendar` — Stage 3 review/approve/schedule (tablet-friendly)
+- `/dashboard/media` — media library: upload (auto-push to GHL CDN), pull from
+  GHL, YouTube links
+- `/dashboard/settings` — brand, sub-account, platform accounts, cadence with
+  regenerate-remaining
+- `/settings/agency` — GHL token health, rate-limit dashboard, token log,
+  database mode

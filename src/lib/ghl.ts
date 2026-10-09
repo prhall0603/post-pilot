@@ -438,6 +438,31 @@ export async function uploadToGhlCdn(
 }
 
 /**
+ * GET /social-media-posting/{locationId}/media — media already uploaded in
+ * the Social Planner (the "pull from GHL" source).
+ */
+export async function listGhlMedia(
+  agencyId: string,
+  locationId: string
+): Promise<Array<{ id: string; url: string; type: string; fileName?: string; createdAt?: string }>> {
+  const conn = await getConn(agencyId);
+  if (conn.mode === "DEMO") {
+    const { demoListMedia } = await import("@/lib/ghlDemo");
+    return demoListMedia(locationId);
+  }
+  const data = (await ghlLocationGet(agencyId, locationId, `/social-media-posting/${locationId}/media`)) as {
+    media?: Array<Record<string, unknown>>;
+  };
+  return (data.media || []).map((m) => ({
+    id: String(m.id),
+    url: String((m as { url?: string }).url || ""),
+    type: String((m as { type?: string }).type || (m as { mediaType?: string }).mediaType || "image"),
+    fileName: (m as { fileName?: string }).fileName || (m as { name?: string }).name,
+    createdAt: (m as { createdAt?: string }).createdAt,
+  }));
+}
+
+/**
  * Validate a Private Integration token by hitting locations/search.
  * Returns the first visible location on success (proof the token works).
  */

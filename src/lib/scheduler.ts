@@ -104,7 +104,9 @@ export function inferGbpType(category: string): "update" | "event" | "offer" {
 
 /** Fetch a local file/url into a Buffer for CDN upload. */
 async function fetchMediaBuffer(url: string): Promise<Buffer> {
-  const absolute = url.startsWith("http") ? url : new URL(url, process.env.APP_ORIGIN || "http://localhost:3000").href;
+  const absolute = url.startsWith("http")
+    ? url
+    : new URL(url, process.env.APP_ORIGIN || process.env.DYAD_TEST_BASE_URL || "http://localhost:3000").href;
   const res = await fetch(absolute);
   if (!res.ok) throw new Error(`Media fetch failed (${res.status}) for ${url}`);
   return Buffer.from(await res.arrayBuffer());

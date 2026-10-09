@@ -16,6 +16,7 @@ import {
   RiYoutubeLine,
   RiCloudLine,
   RiVideoLine,
+  RiDownloadCloudLine,
 } from "react-icons/ri";
 
 interface MediaAsset {
@@ -30,6 +31,12 @@ interface MediaAsset {
   createdAt: string;
 }
 
+interface ImportResult {
+  imported: number;
+  skipped: number;
+  total: number;
+}
+
 function MediaData() {
   const params = useSearchParams();
   const clientId = params.get("client") || "";
@@ -37,6 +44,7 @@ function MediaData() {
   const [uploading, setUploading] = useState(false);
   const [ytUrl, setYtUrl] = useState("");
   const [pushing, setPushing] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
     if (!clientId) return;
@@ -90,6 +98,26 @@ function MediaData() {
     }
   };
 
+  const importFromGhl = async () => {
+    if (!clientId) return;
+    setImporting(true);
+    try {
+      const r = await apiSend<ImportResult>(`/api/clients/${clientId}/media/import`, "POST", {});
+      if (r.total === 0) {
+        toast.info("No media found in GHL for this client's sub-account yet.");
+      } else if (r.imported === 0) {
+        toast.info(`Already imported — ${r.total} GHL asset${r.total === 1 ? "" : "s"} in library.`);
+      } else {
+        toast.success(`Pulled ${r.imported} asset${r.imported === 1 ? "" : "s"} from GHL`);
+      }
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "GHL import failed");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const remove = async (asset: MediaAsset) => {
     if (!confirm(`Delete "${asset.fileName || "asset"}"? It detaches from any posts.`)) return;
     try {
@@ -123,12 +151,24 @@ function MediaData() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">Media library</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Images and videos for this client. Attach them to posts on the calendar; scheduling uploads to the GHL
-          CDN automatically.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight">Media library</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Images and videos for this client. Uploads push to the GHL CDN automatically; pull anything already
+            living in GHL below.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          className="rounded-full"
+          data-testid="pull-from-ghl"
+          disabled={importing || !clientId}
+          onClick={importFromGhl}
+        >
+          <RiDownloadCloudLine className={`mr-1.5 h-4 w-4 ${importing ? "animate-bounce" : ""}`} />
+          {importing ? "Pulling…" : "Pull from GHL"}
+        </Button>
       </div>
 
       {/* Upload row */}
@@ -137,7 +177,9 @@ function MediaData() {
           <RiUploadCloudLine className="h-6 w-6 text-primary" />
           <div className="flex-1">
             <div className="text-sm font-bold">Upload image or video</div>
-            <div className="text-xs text-muted-foreground">Images up to 10MB · videos up to 100MB</div>
+            <div className="text-xs text-muted-foreground">
+              Auto-pushes to GHL CDN on upload · 10MB img / 100MB video
+            </div>
           </div>
           <input
             type="file"

@@ -88,7 +88,21 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         sizeBytes: buf.length,
       },
     });
-    return NextResponse.json({ ok: true, asset });
+
+    // Auto-push to GHL CDN right away (best-effort): scheduling later becomes
+    // instant and the asset shows as ready. Failure is non-fatal — the retry
+    // button and the scheduling pipeline both push on demand.
+    let pushError: string | null = null;
+    if (client.locationId) {
+      try {
+        const cdn = await ensureGhlMedia(guard.auth.agencyId, client.locationId, asset);
+        const fresh = await db.mediaAsset.findUnique({ where: { id: asset.id } });
+        return NextResponse.json({ ok: true, asset: fresh, autoPushed: Boolean(cdn) });
+      } catch (e) {
+        pushError = e instanceof Error ? e.message.slice(0, 160) : "GHL upload failed";
+      }
+    }
+    return NextResponse.json({ ok: true, asset, autoPushed: false, pushError });
   });
 }
 

@@ -90,6 +90,29 @@ export function demoUploadMedia(fileName: string): { url: string; mediaId: strin
   };
 }
 
+/** Simulated GHL media list — two sample assets per location. */
+export function demoListMedia(
+  locationId: string
+): Array<{ id: string; url: string; type: string; fileName?: string; createdAt?: string }> {
+  const company = locationNameFor(locationId);
+  return [
+    {
+      id: `demo_media_img_${locationId.slice(-6)}`,
+      url: "https://images.unsplash.com/photo-1595514534949-bf3f2b26e3b2?w=800&q=70",
+      type: "image",
+      fileName: `${company} — brand hero.jpg`,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: `demo_media_vid_${locationId.slice(-6)}`,
+      url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+      type: "video",
+      fileName: `${company} — install reel.mp4`,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+}
+
 /** Reset the simulated one-time Instagram no-media rejection (demo tray testing). */
 export function resetDemoFailures(): void {
   (g[DEMO_FAILURES_KEY] as Set<string>).clear();
