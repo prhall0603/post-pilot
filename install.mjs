@@ -19,6 +19,16 @@ const die = (msg) => {
   process.exit(1);
 };
 
+// `npx` is npx.cmd on Windows (needs a shell there); direct elsewhere —
+// avoids the [DEP0190] shell-args deprecation warning on macOS/Linux.
+const IS_WIN = process.platform === "win32";
+const npx = (args, opts = {}) =>
+  spawnSync(IS_WIN ? "npx.cmd" : "npx", args, {
+    stdio: "inherit",
+    ...(IS_WIN ? { shell: true } : {}),
+    ...opts,
+  });
+
 log("\n🚀 PostPilot installer");
 
 // 0 — must be run from inside the app folder
@@ -35,7 +45,7 @@ log(`✔ Node.js ${process.versions.node}`);
 
 // 2 — Install all packages (pnpm via npx — no global installs needed)
 log("\n▸ Installing all packages (this can take a few minutes)…");
-const install = spawnSync("npx", ["-y", "pnpm@latest", "install"], { stdio: "inherit", shell: true });
+const install = npx(["-y", "pnpm@latest", "install"]);
 if (install.status !== 0) die("Package install failed — check the output above. Common cause: Git-for-Windows or network blocks; fix it and rerun.");
 log("✔ Packages installed");
 
@@ -43,9 +53,7 @@ log("✔ Packages installed");
 // generated it during install; we regenerate with the PROJECT-LOCAL CLI only
 // if needed. (Never fetch prisma@latest — v7 dropped the `generate` command.)
 log("\n▸ Ensuring the Prisma client is generated…");
-const gen = spawnSync("npx", ["-y", "pnpm@latest", "exec", "prisma", "generate"], {
-  stdio: "inherit", shell: true,
-});
+const gen = npx(["-y", "pnpm@latest", "exec", "prisma", "generate"]);
 if (gen.status !== 0) {
   log("⚠ `prisma generate` returned an error — but if the install output above");
   log("  showed '✔ Generated Prisma Client', the app's client is ready anyway.");
@@ -110,7 +118,10 @@ rl.close();
 if (wantsStart) {
   log("\n▸ Starting the dev server — keep this window open. Press Ctrl+C to stop.");
   log("  The app opens in your browser automatically once it's ready.\n");
-  const dev = spawn("npx", ["-y", "pnpm@latest", "dev"], { shell: true });
+  const dev = spawn(IS_WIN ? "npx.cmd" : "npx", ["-y", "pnpm@latest", "dev"], {
+    stdio: ["inherit", "pipe", "pipe"],
+    ...(IS_WIN ? { shell: true } : {}),
+  });
   let opened = false;
   const openBrowser = (url) => {
     try {
