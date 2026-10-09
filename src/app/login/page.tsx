@@ -23,9 +23,10 @@ function LoginCard() {
       const auth = await apiGet<{
         authenticated: boolean;
         registrationOpen: boolean;
+        needsOnboarding?: boolean;
       }>("/api/auth");
       if (auth.authenticated) {
-        router.replace("/dashboard");
+        router.replace(auth.needsOnboarding ? "/onboarding" : "/dashboard");
         return;
       }
       setMode(auth.registrationOpen ? "register" : "login");
@@ -37,9 +38,17 @@ function LoginCard() {
     if (mode === "loading") return;
     setBusy(true);
     try {
-      await apiSend("/api/auth", "POST", { action: mode, email, password });
+      const r = await apiSend<{ ok: boolean; needsOnboarding?: boolean }>("/api/auth", "POST", {
+        action: mode,
+        email,
+        password,
+      });
       if (mode === "register") toast.success("Workspace created — Demo Mode is on");
-      router.push("/dashboard");
+      if (r.needsOnboarding) {
+        router.push("/onboarding");
+      } else {
+        router.push("/dashboard");
+      }
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");

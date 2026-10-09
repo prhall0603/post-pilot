@@ -16,12 +16,18 @@ datasource db {
 // ----------------------------------------
 
 model Agency {
-  id           String   @id @default(uuid()) @db.Uuid
-  email        String   @unique
-  passwordHash String   @map("passwordHash")
-  demoMode     Boolean  @default(true) @map("demoMode")
-  createdAt    DateTime @default(now()) @map("createdAt") @db.Timestamptz(6)
-  updatedAt    DateTime @updatedAt @map("updatedAt") @db.Timestamptz(6)
+  id              String   @id @default(uuid()) @db.Uuid
+  email           String   @unique
+  passwordHash    String   @map("passwordHash")
+  demoMode        Boolean  @default(true) @map("demoMode")
+  // Database mode: HOSTED (shared control DB) or BYO (client's own Supabase)
+  dbMode          String   @default("HOSTED") @map("dbMode")
+  dbUrlEnc        String?  @map("dbUrlEnc") // AES-256-GCM encrypted BYO connection string
+  dbLabel         String?  @map("dbLabel") // e.g. project ref / host for display
+  schemaInstalled Boolean  @default(true) @map("schemaInstalled")
+  onboarded       Boolean  @default(false) @map("onboarded")
+  createdAt       DateTime @default(now()) @map("createdAt") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updatedAt") @db.Timestamptz(6)
 
   clients       Client[]
   ghlConnection GhLConnection?
@@ -72,6 +78,7 @@ model GhLConnection {
 enum GhlMode {
   DEMO
   LIVE
+  PIT
 
   @@map("GhlMode")
 }

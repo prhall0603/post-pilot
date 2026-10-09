@@ -45,13 +45,13 @@ async function getConn(agencyId: string) {
   return conn;
 }
 
-/** Current connection mode for an agency ("DEMO" | "LIVE" | null unconnected). */
-export async function getConnectionMode(agencyId: string): Promise<"DEMO" | "LIVE" | null> {
+/** Current connection mode for an agency ("DEMO" | "PIT" | "LIVE" | null unconnected). */
+export async function getConnectionMode(agencyId: string): Promise<"DEMO" | "PIT" | "LIVE" | null> {
   const conn = await prisma.ghLConnection.findUnique({
     where: { agencyId },
     select: { mode: true },
   });
-  return conn?.mode ?? null;
+  return (conn?.mode as "DEMO" | "PIT" | "LIVE" | null) ?? null;
 }
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -190,6 +190,14 @@ export async function getLocationToken(agencyId: string, locationId: string): Pr
     g.__ppLocTokens!.set(cacheKey, { token, expiresAt: Date.now() + 3600_000 });
     return token;
   }
+  if (conn.mode === "PIT") {
+    // Private Integration tokens act directly on the locations the token
+    // covers — used as a plain Bearer token for location-scoped endpoints.
+    const token = decrypt(conn.accessTokenEnc) || "";
+    if (!token) throw new Error("PIT token missing — reconnect the Private Integration");
+    g.__ppLocTokens!.set(cacheKey, { token, expiresAt: Date.now() + 3600_000 });
+    return token;
+  }
 
   let agencyToken = decrypt(conn.accessTokenEnc) || "";
   if (!agencyToken || (conn.expiresAt && conn.expiresAt < new Date(Date.now() + 60_000))) {
@@ -285,6 +293,24 @@ export async function listLocations(
     const { DEMO_LOCATIONS } = await import("@/lib/ghlDemo");
     const q = (search || "").toLowerCase();
     return DEMO_LOCATIONS.filter((l) => !q || l.name.toLowerCase().includes(q) || l.id.includes(q));
+  }
+  if (conn.mode === "PIT") {
+    // With a Private Integration token, locations/search runs directly with it.
+    const pit = decrypt(conn.accessTokenEnc) || "";
+    const release = await acquire("agency");
+    try {
+      const q = search ? `&search=${encodeURIComponent(search)}` : "";
+      const res = await fetch(`${GHL_BASE}/locations/search?limit=100${q}`, {
+        headers: { Authorization: `Bearer ${pit}`, Version: VERSION, Accept: "application/json" },
+      });
+      if (!res.ok) throw new GhlApiError(res.status, (await res.text()).slice(0, 300));
+      const data = (await res.json()) as {
+        locations?: Array<{ id: string; name: string; address?: string; logoUrl?: string }>;
+      };
+      return data.locations || [];
+    } finally {
+      release();
+    }
   }
   const release = await acquire("agency");
   try {
@@ -409,4 +435,62 @@ export async function uploadToGhlCdn(
     url: `${GHL_BASE}/social-media-posting/${locationId}/media/${mediaId}`,
     mediaId,
   };
+}
+
+/**
+ * Validate a Private Integration token by hitting locations/search.
+ * Returns the first visible location on success (proof the token works).
+ */
+export async function validatePitToken(
+  token: string
+): Promise<{ ok: true; sampleLocation?: { id: string; name: string } } | { ok: false; error: string }> {
+  try {
+    const res = await fetch(`${GHL_BASE}/locations/search?limit=1`, {
+      headers: { Authorization: `Bearer ${token}`, Version: VERSION, Accept: "application/json" },
+    });
+    if (res.status === 401) {
+      return { ok: false, error: "Token rejected by GHL — check that it was copied in full and is active" };
+    }
+    if (!res.ok) {
+      return { ok: false, error: `GHL returned ${res.status} for the token — it may lack the required scopes/permissions` };
+    }
+    const data = (await res.json()) as { locations?: Array<{ id: string; name: string }> };
+    const first = data.locations?.[0];
+    if (!first) {
+      return { ok: false, error: "Token works but sees no sub-accounts — grant it access to the client's location" };
+    }
+    return { ok: true, sampleLocation: { id: first.id, name: first.name } };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Could not reach GHL to validate the token" };
+  }
+}
+
+/** Store a validated PIT connection (encrypted at rest). */
+export async function connectPit(agencyId: string, token: string, sample?: { id: string; name: string }): Promise<void> {
+  await prisma.ghLConnection.upsert({
+    where: { agencyId },
+    create: {
+      agencyId,
+      mode: "PIT",
+      accessTokenEnc: encrypt(token),
+      tokenType: "PrivateIntegration",
+      connectedAt: new Date(),
+      lastError: null,
+      locationId: sample?.id ?? null,
+    },
+    update: {
+      mode: "PIT",
+      accessTokenEnc: encrypt(token),
+      refreshTokenEnc: null,
+      tokenType: "PrivateIntegration",
+      connectedAt: new Date(),
+      lastError: null,
+      lastRefreshedAt: null,
+      expiresAt: null,
+      locationId: sample?.id ?? null,
+    },
+  });
+  await prisma.tokenEvent.create({
+    data: { agencyId, kind: "connect", detail: `Private Integration connected${sample ? ` — sees ${sample.name}` : ""}` },
+  });
 }

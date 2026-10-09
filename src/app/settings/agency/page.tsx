@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import {
   RiCheckboxCircleLine,
   RiCloseCircleLine,
+  RiDatabase2Line,
   RiExternalLinkLine,
   RiGlobalLine,
   RiRefreshLine,
@@ -48,6 +49,11 @@ interface Agency {
   email: string;
   demoMode: boolean;
 }
+interface OnboardingInfo {
+  ghlMode?: "DEMO" | "LIVE" | "PIT" | null;
+  dbMode: string;
+  dbLabel?: string | null;
+}
 
 function AgencySettings() {
   const params = useSearchParams();
@@ -56,13 +62,17 @@ function AgencySettings() {
   const [connecting, setConnecting] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const [onboarding, setOnboarding] = useState<OnboardingInfo | null>(null);
+
   const load = useCallback(async () => {
-    const [s, a] = await Promise.all([
+    const [s, a, ob] = await Promise.all([
       apiGet<GhlStatus>("/api/ghl/status"),
       apiGet<{ agency: Agency }>("/api/agency"),
+      apiGet<OnboardingInfo>("/api/onboarding/finish").catch(() => null),
     ]);
     setStatus(s);
     setAgency(a.agency);
+    if (ob) setOnboarding(ob);
   }, []);
 
   useEffect(() => {
@@ -249,6 +259,25 @@ function AgencySettings() {
                 Disconnect (revert to Demo)
               </Button>
             )}
+          </div>
+        </section>
+
+        {/* Database + onboarding status */}
+        <section className="rounded-3xl border bg-white p-6 shadow-soft">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-sm font-bold">
+                <RiDatabase2Line className="h-4 w-4 text-primary" /> Database
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {onboarding?.dbMode === "BYO"
+                  ? `This workspace keeps its data in its own Supabase project (${onboarding.dbLabel || "connected"}).`
+                  : "This workspace uses the app's hosted database."}
+              </p>
+            </div>
+            <Button variant="outline" className="rounded-full" onClick={() => (window.location.href = "/onboarding")}>
+              Change database or connection
+            </Button>
           </div>
         </section>
 

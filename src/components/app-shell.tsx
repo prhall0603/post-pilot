@@ -52,9 +52,14 @@ function ShellData({ children }: { children: React.ReactNode }) {
           authenticated: boolean;
           email?: string;
           demoMode?: boolean;
+          needsOnboarding?: boolean;
         }>("/api/auth");
         if (!auth.authenticated) {
           router.replace("/login");
+          return;
+        }
+        if (auth.needsOnboarding) {
+          router.replace("/onboarding");
           return;
         }
         const { clients } = await apiGet<{ clients: ClientSummary[] }>("/api/clients");

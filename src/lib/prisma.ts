@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 // Dyad/Supabase may expose the connection string under different names
 // depending on the environment (dev preview vs. isolated test runs).
-const DATABASE_URL =
+export const DATABASE_URL =
   process.env.DATABASE_URL ||
   process.env.SUPABASE_DB_URL ||
   process.env.POSTGRES_URL ||

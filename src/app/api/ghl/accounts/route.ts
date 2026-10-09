@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { listAccounts } from "@/lib/ghl";
-import { prisma } from "@/lib/prisma";
+import { db, withTenantDb } from "@/lib/tenantDb";
 import { isPlatformId } from "@/lib/platforms";
 
 /** GET /api/ghl/accounts?locationId=... — connected platform accounts per sub-account. */
@@ -23,49 +23,49 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/ghl/accounts — assign each platform's target account(s) per client.
- * body: { clientId, locationId, assignments: [{ platform, ghlAccountId, accountName, avatarUrl? }] }
  */
 export async function POST(req: NextRequest) {
   const guard = await requireAuth();
   if ("response" in guard) return guard.response;
-  const input = (await req.json().catch(() => ({}))) as {
-    clientId?: string;
-    locationId?: string;
-    assignments?: Array<{ platform?: string; ghlAccountId?: string; accountName?: string; avatarUrl?: string }>;
-  };
-  if (!input.clientId || !input.locationId) {
-    return NextResponse.json({ error: "clientId and locationId required" }, { status: 400 });
-  }
-  const client = await prisma.client.findFirst({
-    where: { id: input.clientId, agencyId: guard.auth.agencyId },
-  });
-  if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
-  await prisma.platformAccount.deleteMany({ where: { clientId: input.clientId } });
-  const assigns = (input.assignments || []).filter(
-    (a): a is { platform: string; ghlAccountId: string; accountName: string; avatarUrl?: string } =>
-      Boolean(a.platform && isPlatformId(a.platform) && a.ghlAccountId)
-  );
-  if (assigns.length) {
-    await prisma.platformAccount.createMany({
-      data: assigns.map((a) => ({
-        clientId: input.clientId!,
-        locationId: input.locationId!,
-        platform: a.platform,
-        ghlAccountId: a.ghlAccountId,
-        accountName: a.accountName || a.ghlAccountId,
-        avatarUrl: a.avatarUrl || null,
-        lastSyncedAt: new Date(),
-      })),
+  return withTenantDb(guard.auth.agencyId, async () => {
+    const input = (await req.json().catch(() => ({}))) as {
+      clientId?: string;
+      locationId?: string;
+      assignments?: Array<{ platform?: string; ghlAccountId?: string; accountName?: string; avatarUrl?: string }>;
+    };
+    if (!input.clientId || !input.locationId) {
+      return NextResponse.json({ error: "clientId and locationId required" }, { status: 400 });
+    }
+    const client = await db.client.findFirst({
+      where: { id: input.clientId, agencyId: guard.auth.agencyId },
     });
-    // Default each client's post rows to the assigned account so scheduling targets it.
-    await prisma.$transaction(
-      assigns.map((a) =>
-        prisma.post.updateMany({
-          where: { clientId: input.clientId!, platform: a.platform, ghlAccountId: null },
-          data: { ghlAccountId: a.ghlAccountId },
-        })
-      )
+    if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    await db.platformAccount.deleteMany({ where: { clientId: input.clientId } });
+    const assigns = (input.assignments || []).filter(
+      (a): a is { platform: string; ghlAccountId: string; accountName: string; avatarUrl?: string } =>
+        Boolean(a.platform && isPlatformId(a.platform) && a.ghlAccountId)
     );
-  }
-  return NextResponse.json({ ok: true, assigned: assigns.length });
+    if (assigns.length) {
+      await db.platformAccount.createMany({
+        data: assigns.map((a) => ({
+          clientId: input.clientId!,
+          locationId: input.locationId!,
+          platform: a.platform,
+          ghlAccountId: a.ghlAccountId,
+          accountName: a.accountName || a.ghlAccountId,
+          avatarUrl: a.avatarUrl || null,
+          lastSyncedAt: new Date(),
+        })),
+      });
+      await db.$transaction(
+        assigns.map((a) =>
+          db.post.updateMany({
+            where: { clientId: input.clientId!, platform: a.platform, ghlAccountId: null },
+            data: { ghlAccountId: a.ghlAccountId },
+          })
+        )
+      );
+    }
+    return NextResponse.json({ ok: true, assigned: assigns.length });
+  });
 }

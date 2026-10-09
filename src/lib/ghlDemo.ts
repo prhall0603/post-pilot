@@ -95,7 +95,7 @@ export function resetDemoFailures(): void {
   (g[DEMO_FAILURES_KEY] as Set<string>).clear();
 }
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/tenantDb";
 import { hashPassword } from "@/lib/crypto";
 import { trimForPlatform } from "@/lib/platforms";
 
@@ -143,8 +143,13 @@ const DEMO_POST_BLUEPRINTS: Array<{ day: number; time: string; platform: string;
   { day: 16, time: "09:00", platform: "facebook", category: "behind_the_scenes", topic: "Crew spotlight", body: "Meet the crew that makes it happen. Sunrise Solar Co.'s install teams are all employees — never subcontractors — and every one is NISA-certified.\n\n[PLACEHOLDER: crew member name] has been with us since [PLACEHOLDER: year]." },
 ];
 
-/** Seed a demo agency with one fully worked client so the UI is never empty. */
-export async function seedDemoAgency(agencyId: string): Promise<void> {
+/**
+ * Seed a demo agency with one fully worked client so the UI is never empty.
+ * Runs against the CURRENT tenant database — which is why it must run inside
+ * withTenantDb() (it is invoked that way from the auth route).
+ */
+export async function seedDemoAgency(agency: { id: string; dbMode: string }): Promise<void> {
+  const agencyId = agency.id;
   const existing = await prisma.client.count({ where: { agencyId } });
   if (existing > 0) return;
   const client = await prisma.client.create({

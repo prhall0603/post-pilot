@@ -13,6 +13,8 @@ export interface AgencyAuth {
   agencyId: string;
   email: string;
   demoMode: boolean;
+  dbMode: string;
+  onboarded: boolean;
 }
 
 /** Create a session for an agency and set the httpOnly cookie. */
@@ -46,7 +48,13 @@ export async function getAuth(): Promise<AgencyAuth | null> {
     await prisma.session.delete({ where: { id: session.id } }).catch(() => {});
     return null;
   }
-  return { agencyId: session.agencyId, email: session.agency.email, demoMode: session.agency.demoMode };
+  return {
+    agencyId: session.agencyId,
+    email: session.agency.email,
+    demoMode: session.agency.demoMode,
+    dbMode: session.agency.dbMode,
+    onboarded: session.agency.onboarded,
+  };
 }
 
 /** Sign out: delete session row + clear cookie. */
