@@ -36,35 +36,34 @@ Stack: **Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Pris
 > Prefer the terminal? `node install.mjs` does the same thing.
 > `--start` skips prompts; `--no-start` installs only.
 
-## 🚀 One-line install from GitHub (clone + install)
+## 🚀 THE one-line command — Windows, macOS, and Linux alike
 
-Clones the repo, installs every package, and generates the Prisma client.
-**Pick the line for your shell:**
-
-**Windows — PowerShell** (Paste into PowerShell; skip the clone part if the
-folder already exists):
-
-```powershell
-if (-not (Test-Path post-pilot)) { git clone https://github.com/prhall0603/post-pilot.git post-pilot }; Set-Location post-pilot; npx -y pnpm@latest install; npx -y prisma@latest generate
-```
-
-**macOS / Linux — Terminal (bash/zsh):**
+Paste this single line into any terminal (PowerShell on Windows, Terminal on
+macOS/Linux). It **clones the repo, installs all packages, generates the
+Prisma client, and launches the app**:
 
 ```bash
-if [ ! -d post-pilot ]; then git clone https://github.com/prhall0603/post-pilot.git post-pilot; fi; cd post-pilot && npx -y pnpm@latest install && npx -y prisma@latest generate
+git clone https://github.com/prhall0603/post-pilot.git post-pilot; cd post-pilot; npx -y pnpm@latest install; npx -y prisma@latest generate; node install.mjs --start
 ```
 
-Repo already cloned? One line from the project root installs **and starts**
-(any OS, including Windows PowerShell):
+**Folder already there?** (downloaded ZIP earlier or cloned before) — cd into
+it and paste just this:
 
 ```bash
-npx -y pnpm@latest install && npx -y prisma@latest generate && npx -y pnpm@latest dev
+npx -y pnpm@latest install; npx -y prisma@latest generate; node install.mjs --start
 ```
 
-> Requires only **Node.js 20+** (bundles `npx`) and **Git**. The `postinstall`
-> hook regenerates Prisma automatically either way. Windows tip: if
-> `git`/`npx` aren't recognized, install Node.js from nodejs.org (which
-> bundles npx) and Git from git-scm.com, then **reopen PowerShell** and retry.
+What happens: packages install (a few minutes) → the installer asks for your
+**database connection string** (Supabase → green Connect button → Session
+pooler URI, with your real password; Enter skips) → the dev server starts →
+**your browser opens the app automatically** (when it prints `Ready`, the
+address is usually http://localhost:3000). Window stays open while the app
+runs; Ctrl+C stops it; re-paste the line (or double-click `START-APP.bat` /
+`.command` / `.sh`) to run it again.
+
+> Needs only **Node.js 20+** ([nodejs.org](https://nodejs.org) — bundles `npx`)
+> and **Git** (git-scm.com). Reopen the terminal after installing either one.
+> The `;` separators work in PowerShell *and* bash/zsh — same line everywhere.
 
 ---
 

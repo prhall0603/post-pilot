@@ -6,7 +6,7 @@
 // Flags:  node install.mjs --start   → start immediately after install
 //         node install.mjs --no-start → never prompt to start
 
-import { spawnSync } from "node:child_process";
+import { spawnSync, spawn } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
@@ -20,6 +20,11 @@ const die = (msg) => {
 };
 
 log("\n🚀 PostPilot installer");
+
+// 0 — must be run from inside the app folder
+if (!existsSync("package.json")) {
+  die("PostPilot files not found in this folder. Open the app folder first (example: cd post-pilot), then run:  node install.mjs --start");
+}
 
 // 1 — Node version check
 const major = Number(process.versions.node.split(".")[0]);
@@ -96,9 +101,41 @@ rl.close();
 
 if (wantsStart) {
   log("\n▸ Starting the dev server — keep this window open. Press Ctrl+C to stop.");
-  log("  When it prints 'Ready', open the shown URL in your browser (usually http://localhost:3000).\n");
-  const dev = spawnSync("npx", ["-y", "pnpm@latest", "dev"], { stdio: "inherit", shell: true });
-  log(dev.status === 0 ? "\n✔ Server stopped cleanly." : `\n⚠ Server exited (code ${dev.status}). Rerun with:  npx pnpm dev`);
+  log("  The app opens in your browser automatically once it's ready.\n");
+  const dev = spawn("npx", ["-y", "pnpm@latest", "dev"], { shell: true });
+  let opened = false;
+  const openBrowser = (url) => {
+    try {
+      if (process.platform === "win32") {
+        spawn("cmd", ["/c", "start", "", url], { shell: true, stdio: "ignore" }).unref();
+      } else if (process.platform === "darwin") {
+        spawn("open", [url], { stdio: "ignore" }).unref();
+      } else {
+        spawn("xdg-open", [url], { stdio: "ignore" }).unref();
+      }
+    } catch {
+      /* user can open the printed URL manually */
+    }
+  };
+  const onData = (chunk) => {
+    process.stdout.write(chunk);
+    if (opened) return;
+    const m = String(chunk).match(/https?:\/\/localhost:\d+/);
+    if (m) {
+      opened = true;
+      const url = m[0];
+      // give Next a moment to finish booting before popping the browser
+      setTimeout(() => {
+        log(`\n▸ Opening ${url} in your browser…\n`);
+        openBrowser(url);
+      }, 1500);
+    }
+  };
+  dev.stdout.on("data", onData);
+  dev.stderr.on("data", (c) => process.stderr.write(c));
+  dev.on("exit", (code) =>
+    log(`\n⚠ Server stopped (code ${code ?? 0}). Start again any time with:  npx pnpm dev`)
+  );
 } else {
   log("\n✅ Install complete. Start any time with:");
   log("   npx pnpm dev");
