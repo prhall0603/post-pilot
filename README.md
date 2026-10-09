@@ -9,7 +9,7 @@ Stack: **Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Pris
 
 ---
 
-## 🖱️ One-click download + install (Windows / macOS / Linux)
+## 🖱️ One-click download + install + run (Windows / macOS / Linux)
 
 1. **Download the code:** click the green **`<> Code`** button on the repo page
    → **Download ZIP** → unzip it, then open a terminal inside the unzipped
@@ -22,8 +22,12 @@ Stack: **Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Pris
    ```
 
    One command, every OS. It installs all packages, generates the Prisma
-   client, creates your `.env.local`, and prints the exact next steps
-   (set `DATABASE_URL`, then `npx pnpm dev` → open the printed URL).
+   client, **asks you to paste your database connection string** (or skip),
+   and **starts the app** — when it prints `Ready`, open the shown URL
+   (usually http://localhost:3000) in your browser.
+
+   > Want it fully unattended? `node install.mjs --start` starts the app
+   > without asking; `--no-start` installs only.
 
 ## 🚀 One-line install from GitHub (clone + install)
 
