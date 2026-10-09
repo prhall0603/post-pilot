@@ -9,6 +9,60 @@ Stack: **Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Pris
 
 ---
 
+## 🚀 One-line install from GitHub (Windows / macOS / Linux)
+
+Paste this single line into **PowerShell** (Windows), **Terminal** (macOS), or
+**bash/zsh** (Linux). It clones the repo, installs every package, generates
+the Prisma client, and tells you how to start:
+
+```bash
+bash -c "$(git clone https://github.com/YOUR-ORG/postpilot.git postpilot 2>/dev/null && cd postpilot && npx -y pnpm@latest install && npx -y prisma@latest generate && echo '✔ Installed. Next: add DATABASE_URL to .env.local (see below), then: npx pnpm dev')" || { echo '❌ Git or Node missing — install Node.js 20+ from https://nodejs.org and Git from https://git-scm.com, then rerun.'; }
+```
+
+Repo already cloned? One line from the project root installs **and starts**:
+
+```bash
+npx -y pnpm@latest install && npx -y prisma@latest generate && npx -y pnpm@latest dev
+```
+
+> Requires only **Node.js 20+** (bundles `npx`/corepack) and **Git**. The
+> `postinstall` hook regenerates Prisma automatically either way.
+
+---
+
+## 🌐 Accessing the app in the browser
+
+1. **Start the server** (from the project root):
+   ```bash
+   npx pnpm dev
+   ```
+2. **Open the printed URL.** On startup the server prints its addresses — open the *Local* one in any browser:
+   - Development: **http://localhost:3000**
+   - If port 3000 is busy, Next.js automatically picks the next free port
+     (e.g. `http://localhost:3001`) — always use what's printed, never assume.
+   - **From your phone / another device on the same network:** use the printed
+     *Network* address (e.g. `http://192.168.x.x:3000`).
+     For production (`pnpm build && pnpm start`), pass `-H 0.0.0.0` to
+     `next start` to accept LAN connections.
+3. **First run in the browser:**
+   - You land on the product page → click **Open workspace** (top right or final CTA)
+   - **"Create your agency workspace"** — any email + an 8+ character password
+     (this is your PostPilot login, independent of the database)
+   - The **onboarding wizard** opens: choose the database (hosted, or your
+     client's own Supabase) and the GHL connection (Demo Mode / Private
+     Integration token / Marketplace OAuth) — or "Skip for now"
+   - You land on the dashboard with a seeded example client (Demo Mode), ready
+     to explore: overview → generate a 12-month plan → calendar review →
+     schedule through GHL
+4. **Returning visits:** go straight to `http://localhost:3000/login` and sign
+   in with the same email/password (registration closes after the first run).
+
+**Running inside Dyad?** You don't need any of the above — the preview pane
+already proxies the running dev server (its own localhost port); sign in
+directly there.
+
+---
+
 ## Running on Windows, macOS, and Linux
 
 The app is pure TypeScript/Node — it runs identically on all three operating
