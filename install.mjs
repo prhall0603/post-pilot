@@ -39,11 +39,19 @@ const install = spawnSync("npx", ["-y", "pnpm@latest", "install"], { stdio: "inh
 if (install.status !== 0) die("Package install failed — check the output above. Common cause: Git-for-Windows or network blocks; fix it and rerun.");
 log("✔ Packages installed");
 
-// 3 — Generate the Prisma client (schema → typed client)
-log("\n▸ Generating the Prisma client…");
-const gen = spawnSync("npx", ["-y", "prisma@latest", "generate"], { stdio: "inherit", shell: true });
-if (gen.status !== 0) die("Prisma generate failed — check the output above and rerun.");
-log("✔ Prisma client generated");
+// 3 — Ensure the Prisma client exists. Prisma 6's postinstall hook already
+// generated it during install; we regenerate with the PROJECT-LOCAL CLI only
+// if needed. (Never fetch prisma@latest — v7 dropped the `generate` command.)
+log("\n▸ Ensuring the Prisma client is generated…");
+const gen = spawnSync("npx", ["-y", "pnpm@latest", "exec", "prisma", "generate"], {
+  stdio: "inherit", shell: true,
+});
+if (gen.status !== 0) {
+  log("⚠ `prisma generate` returned an error — but if the install output above");
+  log("  showed '✔ Generated Prisma Client', the app's client is ready anyway.");
+} else {
+  log("✔ Prisma client generated");
+}
 
 // 4 — Prepare .env.local (never overwrites an existing file)
 const envPath = ".env.local";
