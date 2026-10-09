@@ -16,7 +16,7 @@ Paste this single line into **PowerShell** (Windows), **Terminal** (macOS), or
 the Prisma client, and tells you how to start:
 
 ```bash
-bash -c "$(git clone https://github.com/YOUR-ORG/postpilot.git postpilot 2>/dev/null && cd postpilot && npx -y pnpm@latest install && npx -y prisma@latest generate && echo '✔ Installed. Next: add DATABASE_URL to .env.local (see below), then: npx pnpm dev')" || { echo '❌ Git or Node missing — install Node.js 20+ from https://nodejs.org and Git from https://git-scm.com, then rerun.'; }
+bash -c "$(git clone https://github.com/prhall0603/post-pilot.git post-pilot 2>/dev/null && cd post-pilot && npx -y pnpm@latest install && npx -y prisma@latest generate && echo '✔ Installed. Next: add DATABASE_URL to .env.local (see below), then: npx pnpm dev')" || { echo '❌ Git or Node missing — install Node.js 20+ from https://nodejs.org and Git from https://git-scm.com, then rerun.'; }
 ```
 
 Repo already cloned? One line from the project root installs **and starts**:
@@ -67,25 +67,6 @@ directly there.
 
 The app is pure TypeScript/Node — it runs identically on all three operating
 systems. Use the commands for your OS below.
-
-### ⚡ One-command setup (clones + installs + runs)
-
-Paste this single line into PowerShell (Windows), Terminal (macOS), or
-bash/zsh (Linux). It prints its own prerequisites if anything's missing:
-
-```bash
-bash -c "$(git clone https://github.com/YOUR-ORG/postpilot.git 2>/dev/null && cd postpilot && npx -y pnpm@latest install && npx -y prisma@latest generate && echo '✔ Dependencies installed. Run:  cd postpilot && npx pnpm dev')" || { echo '❌ Git or Node is missing — install Node.js 20 (includes corepack/pnpm support) from https://nodejs.org and Git from https://git-scm.com, then rerun this command.'; }
-```
-
-Already have the repo cloned? The one-liner below does install + generate +
-dev server start in one shot from the project root:
-
-```bash
-npx -y pnpm@latest install && npx -y prisma@latest generate && npx -y pnpm@latest dev
-```
-
-(Windows note: run it in **PowerShell** — `npx` resolves identically; if
-`npx` is missing, install Node.js from nodejs.org which bundles it.)
 
 ### Prerequisites (all OSes)
 
