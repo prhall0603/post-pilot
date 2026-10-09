@@ -39,18 +39,24 @@ Stack: **Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Pris
 ## 🚀 THE one-line command — Windows, macOS, and Linux alike
 
 Paste this single line into any terminal (PowerShell on Windows, Terminal on
-macOS/Linux). It **clones the repo, installs all packages, generates the
-Prisma client, and launches the app**:
+macOS/Linux). It **clones the repo, installs all packages, and launches the
+app**:
 
 ```bash
-git clone https://github.com/prhall0603/post-pilot.git post-pilot; cd post-pilot; npx -y pnpm@latest install; npx -y prisma@latest generate; node install.mjs --start
+git clone https://github.com/prhall0603/post-pilot.git post-pilot; cd post-pilot; npx -y pnpm@latest install; node install.mjs --start
 ```
+
+> **Git asking for a username/password?** The repo is private (or your clone
+> was rejected): GitHub no longer accepts account passwords for Git. Either
+> make the repo public (repo → Settings → Danger Zone → Change visibility),
+> or log in once with the GitHub CLI (`gh auth login` — then use
+> `gh repo clone prhall0603/post-pilot` in place of the `git clone` above).
 
 **Folder already there?** (downloaded ZIP earlier or cloned before) — cd into
 it and paste just this:
 
 ```bash
-npx -y pnpm@latest install; npx -y prisma@latest generate; node install.mjs --start
+npx -y pnpm@latest install; node install.mjs --start
 ```
 
 What happens: packages install (a few minutes) → the installer asks for your
