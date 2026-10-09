@@ -9,7 +9,23 @@ Stack: **Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Pris
 
 ---
 
-## 🚀 One-line install from GitHub (Windows / macOS / Linux)
+## 🖱️ One-click download + install (Windows / macOS / Linux)
+
+1. **Download the code:** click the green **`<> Code`** button on the repo page
+   → **Download ZIP** → unzip it, then open a terminal inside the unzipped
+   folder.
+   *(Direct link: https://github.com/prhall0603/post-pilot/archive/refs/heads/main.zip )*
+2. **Run the installer** (needs [Node.js 20+](https://nodejs.org), that's all):
+
+   ```
+   node install.mjs
+   ```
+
+   One command, every OS. It installs all packages, generates the Prisma
+   client, creates your `.env.local`, and prints the exact next steps
+   (set `DATABASE_URL`, then `npx pnpm dev` → open the printed URL).
+
+## 🚀 One-line install from GitHub (clone + install)
 
 Clones the repo, installs every package, and generates the Prisma client.
 **Pick the line for your shell:**
