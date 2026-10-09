@@ -11,22 +11,33 @@ Stack: **Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Pris
 
 ## 🚀 One-line install from GitHub (Windows / macOS / Linux)
 
-Paste this single line into **PowerShell** (Windows), **Terminal** (macOS), or
-**bash/zsh** (Linux). It clones the repo, installs every package, generates
-the Prisma client, and tells you how to start:
+Clones the repo, installs every package, and generates the Prisma client.
+**Pick the line for your shell:**
 
-```bash
-bash -c "$(git clone https://github.com/prhall0603/post-pilot.git post-pilot 2>/dev/null && cd post-pilot && npx -y pnpm@latest install && npx -y prisma@latest generate && echo '✔ Installed. Next: add DATABASE_URL to .env.local (see below), then: npx pnpm dev')" || { echo '❌ Git or Node missing — install Node.js 20+ from https://nodejs.org and Git from https://git-scm.com, then rerun.'; }
+**Windows — PowerShell** (Paste into PowerShell; skip the clone part if the
+folder already exists):
+
+```powershell
+if (-not (Test-Path post-pilot)) { git clone https://github.com/prhall0603/post-pilot.git post-pilot }; Set-Location post-pilot; npx -y pnpm@latest install; npx -y prisma@latest generate
 ```
 
-Repo already cloned? One line from the project root installs **and starts**:
+**macOS / Linux — Terminal (bash/zsh):**
+
+```bash
+if [ ! -d post-pilot ]; then git clone https://github.com/prhall0603/post-pilot.git post-pilot; fi; cd post-pilot && npx -y pnpm@latest install && npx -y prisma@latest generate
+```
+
+Repo already cloned? One line from the project root installs **and starts**
+(any OS, including Windows PowerShell):
 
 ```bash
 npx -y pnpm@latest install && npx -y prisma@latest generate && npx -y pnpm@latest dev
 ```
 
-> Requires only **Node.js 20+** (bundles `npx`/corepack) and **Git**. The
-> `postinstall` hook regenerates Prisma automatically either way.
+> Requires only **Node.js 20+** (bundles `npx`) and **Git**. The `postinstall`
+> hook regenerates Prisma automatically either way. Windows tip: if
+> `git`/`npx` aren't recognized, install Node.js from nodejs.org (which
+> bundles npx) and Git from git-scm.com, then **reopen PowerShell** and retry.
 
 ---
 
