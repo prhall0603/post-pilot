@@ -9,25 +9,32 @@ Stack: **Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Pris
 
 ---
 
-## 🖱️ One-click download + install + run (Windows / macOS / Linux)
+## 🖱️ One-click download + install + run — NO command line
 
-1. **Download the code:** click the green **`<> Code`** button on the repo page
-   → **Download ZIP** → unzip it, then open a terminal inside the unzipped
-   folder.
-   *(Direct link: https://github.com/prhall0603/post-pilot/archive/refs/heads/main.zip )*
-2. **Run the installer** (needs [Node.js 20+](https://nodejs.org), that's all):
+1. **Install Node.js once** (only if you don't have it): click
+   [nodejs.org](https://nodejs.org) → download the LTS → run it → keep
+   clicking Next.
+2. **Download the app code:** on the repo page, click the green **`<> Code`**
+   button → **Download ZIP** → **Extract All…** (double-clicking the ZIP is
+   not enough — extract it!)
+3. **Open the extracted folder** and **double-click the launcher for your
+   computer**:
+   - 🪟 **Windows:** `START-APP.bat`
+   - 🍎 **macOS:** `START-APP.command` *(if Finder complains — right-click it →
+     Open With → Terminal)*
+   - 🐧 **Linux:** `START-APP.sh` *(make executable once: right-click →
+     Properties → Allow executing, or `chmod +x START-APP.sh`)*
 
-   ```
-   node install.mjs
-   ```
+   A window opens, installs everything, and asks you to **paste your database
+   connection string** (find it: Supabase project → green **Connect** button →
+   Session pooler URI → replace `[YOUR-PASSWORD]` with your real password —
+   or just press Enter to skip and set it later).
+4. **When it says `Ready`**, open **http://localhost:3000** in your browser.
+   That's the app. The window must stay open while you use it — **double-click
+   the launcher again anytime** to restart.
 
-   One command, every OS. It installs all packages, generates the Prisma
-   client, **asks you to paste your database connection string** (or skip),
-   and **starts the app** — when it prints `Ready`, open the shown URL
-   (usually http://localhost:3000) in your browser.
-
-   > Want it fully unattended? `node install.mjs --start` starts the app
-   > without asking; `--no-start` installs only.
+> Prefer the terminal? `node install.mjs` does the same thing.
+> `--start` skips prompts; `--no-start` installs only.
 
 ## 🚀 One-line install from GitHub (clone + install)
 
