@@ -1,4 +1,4 @@
-import { controlDb } from "@/lib/dbMode";
+import { controlDb, isLocalMode } from "@/lib/dbMode";
 import { verifyPassword, hashPassword } from "@/lib/crypto";
 import { createSession, destroySession, getAuth } from "@/lib/auth";
 import { withTenantDb } from "@/lib/tenantDb";
@@ -6,23 +6,26 @@ import { seedDemoAgency } from "@/lib/ghlDemo";
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
-/** Specific 503 with the Prisma init reason surfaced for setup UIs. */
+/** Specific 503 with the real reason surfaced for setup UIs. */
 function dbUnavailable(e: unknown): NextResponse {
-  const raw = e instanceof Error ? e.message : String(e);
-  const reason = /Environment variable not found/.test(raw)
-    ? "connection string (DATABASE_URL) not configured in this environment"
-    : /Can't reach database server|ECONNREFUSED|ENETUNREACH|timed out/i.test(raw)
-      ? "database server unreachable from this environment"
-      : /authentication failed/i.test(raw)
-        ? "database credentials rejected"
-        : raw.split("\n")[0].slice(0, 140);
-  return NextResponse.json({ error: `Database not connected — ${reason}` }, { status: 503 });
+  const raw = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+  let reason = raw.replace(/^[^:]*:\s*/, "").split("\n")[0].slice(0, 220);
+  if (/Environment variable not found/.test(raw)) {
+    reason = "no database connection string (DATABASE_URL) is configured";
+  } else if (/Cannot reach database server|ECONNREFUSED|ENETUNREACH|timed out/i.test(raw)) {
+    reason = "database server unreachable";
+  } else if (/authentication failed|credentials/i.test(raw)) {
+    reason = "database credentials rejected";
+  } else if (/restart to load the newly installed/i.test(raw)) {
+    reason =
+      "Local Mode database was prepared during install - restart the app (Ctrl+C, run the launcher again) and it will be ready";
+  } else if (/LOCAL DB NOT PREPARED|Local database client not prepared|not initialized/i.test(raw)) {
+    reason =
+      "Local Mode database is not prepared - run the installer again (START-APP.bat / .command / .sh or install.sh)";
+  }
+  return NextResponse.json({ error: `Database issue - ${reason}` }, { status: 503 });
 }
 
-/**
- * POST /api/auth — action-based auth endpoint (per-workspace).
- * actions: register (first-run only), login, logout
- */
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
     action?: string;
@@ -30,22 +33,19 @@ export async function POST(req: NextRequest) {
     password?: string;
   };
   const action = body.action || "login";
-
   if (action === "logout") {
     await destroySession();
     return NextResponse.json({ ok: true });
   }
-
   const email = (body.email || "").trim().toLowerCase();
   const password = body.password || "";
   if (!email || !password) {
     return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
   }
-
- try {
-   const prisma = await controlDb();
-   if (action === "register") {
-     const count = await prisma.agency.count();
+  try {
+    const prisma = await controlDb();
+    if (action === "register") {
+      const count = await prisma.agency.count();
       if (count > 0) {
         return NextResponse.json({ error: "Workspace already exists. Sign in instead." }, { status: 409 });
       }
@@ -63,7 +63,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, email: agency.email, needsOnboarding: true });
     }
 
-    // login
     const agency = await prisma.agency.findUnique({ where: { email } });
     if (!agency || !verifyPassword(password, agency.passwordHash)) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
@@ -72,11 +71,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, email: agency.email, needsOnboarding: !agency.onboarded });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientInitializationError) return dbUnavailable(e);
+    if (e instanceof Error && (isLocalMode() || /Local database|Local Mode|not prepared/i.test(e.message))) {
+      return dbUnavailable(e);
+    }
     throw e;
   }
 }
 
-/** GET /api/auth — current session + whether onboarding is pending. */
 export async function GET() {
   try {
     const auth = await getAuth();
@@ -92,6 +93,9 @@ export async function GET() {
     });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientInitializationError) return dbUnavailable(e);
+    if (e instanceof Error && (isLocalMode() || /Local database|Local Mode|not prepared/i.test(e.message))) {
+      return dbUnavailable(e);
+    }
     throw e;
   }
 }
