@@ -23,24 +23,42 @@ echo ""
 
 # ---------------------------------------------------------------------------
 # 0) Locate / fetch the app folder
+#    A "real" PostPilot folder has both package.json AND prisma/schema.local.prisma
+#    (stray package.json files in e.g. the home folder don't count).
 # ---------------------------------------------------------------------------
-if [ -f ./package.json ]; then
+is_app_dir() { [ -f ./package.json ] && [ -f ./prisma/schema.local.prisma ]; }
+is_app_dir_in() { [ -f "$1/package.json" ] && [ -f "$1/prisma/schema.local.prisma" ]; }
+
+if is_app_dir; then
   say "Found the PostPilot project in the current folder (OK)"
-elif [ -f ./post-pilot/package.json ]; then
+elif [ -d ./post-pilot ] && is_app_dir_in ./post-pilot; then
   cd ./post-pilot || die "cd post-pilot failed"
   say "Found ./post-pilot (OK)"
 else
-  say "Cloning PostPilot from GitHub..."
   if [ -d ./post-pilot ]; then
-    die "Folder ./post-pilot already exists but is incomplete — delete it or run this inside it."
+    say "Folder ./post-pilot exists but is incomplete - repairing it..."
+    git -C ./post-pilot reset --hard >/dev/null 2>&1 || true
+    git -C ./post-pilot clean -fd prisma >/dev/null 2>&1 || true
+    cd ./post-pilot || die "cd post-pilot failed"
+    if is_app_dir; then
+      say "Repaired (OK)"
+    fi
   fi
-  git clone "$REPO" post-pilot 2>&1 | tail -n 1 || {
-    echo ""
-    die "Clone failed. Most often the repo is PRIVATE, or Git is missing.
+  if ! is_app_dir; then
+    say "Cloning PostPilot from GitHub..."
+    if [ -d ./post-pilot ] && [ "$(ls -A ./post-pilot | head -n 1)" != "" ] && ! git -C ./post-pilot rev-parse HEAD >/dev/null 2>&1; then
+      die "Folder ./post-pilot exists but is incomplete - delete it, then rerun."
+    fi
+    if ! is_app_dir && [ ! -d ./post-pilot ]; then
+      git clone "$REPO" post-pilot 2>&1 | tail -n 1 || {
+        echo ""
+        die "Clone failed. Most often the repo is PRIVATE, or Git is missing.
   * Private repo: run 'gh auth login' once, or make the repo public
     (GitHub -> Settings -> Danger Zone -> Change visibility)."
-  }
-  cd ./post-pilot || die "cd post-pilot failed"
+      }
+      cd ./post-pilot || die "cd post-pilot failed"
+    fi
+  fi
 fi
 
 # ---------------------------------------------------------------------------
