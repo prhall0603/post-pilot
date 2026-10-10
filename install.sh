@@ -34,15 +34,19 @@ if is_app_dir; then
 elif [ -d ./post-pilot ] && is_app_dir_in ./post-pilot; then
   cd ./post-pilot || die "cd post-pilot failed"
   say "Found ./post-pilot (OK)"
+  say "Syncing to the latest code..."
+  git fetch origin main >/dev/null 2>&1 && git reset --hard origin/main >/dev/null 2>&1 \
+    && say "Updated to the latest version ✔" \
+    || say "Could not update (offline/auth) - continuing with existing files."
 else
   if [ -d ./post-pilot ]; then
-    say "Folder ./post-pilot exists but is incomplete - repairing it..."
+    say "Folder ./post-pilot exists but is incomplete - repairing and syncing to latest..."
     git -C ./post-pilot reset --hard >/dev/null 2>&1 || true
     git -C ./post-pilot clean -fd prisma >/dev/null 2>&1 || true
+    git -C ./post-pilot fetch origin main >/dev/null 2>&1 && \
+      git -C ./post-pilot reset --hard origin/main >/dev/null 2>&1 || true
     cd ./post-pilot || die "cd post-pilot failed"
-    if is_app_dir; then
-      say "Repaired (OK)"
-    fi
+    is_app_dir && say "Repaired (OK)"
   fi
   if ! is_app_dir; then
     say "Cloning PostPilot from GitHub..."
@@ -60,6 +64,12 @@ else
     fi
   fi
 fi
+
+# Always run on the latest committed code
+say "Syncing to the latest code..."
+git fetch origin main >/dev/null 2>&1 && git reset --hard origin/main >/dev/null 2>&1 \
+  && say "Updated to the latest version ✔" \
+  || say "Could not update (offline/auth) - continuing with existing files."
 
 # ---------------------------------------------------------------------------
 # 1) Node.js present?
@@ -126,11 +136,12 @@ else
   else
     say "Local Mode selected ✔ — data will be stored on this computer (no Supabase needed)."
     say "Connect a Supabase project later via the app's onboarding wizard if you change your mind."
-    REGION="${PP_POOLER_REGION:-}"
-    say "Generating the local database…"
-    npx -y pnpm@latest exec prisma generate --schema prisma/schema.local.prisma >/dev/null 2>&1 || true
-    npx -y pnpm@latest exec prisma db push --schema prisma/schema.local.prisma --skip-generate >/dev/null 2>&1 \
-      || say "(the app will finish preparing the local database on first start)"
+    if [ -t 0 ] || [ -r /dev/tty ]; then
+      npx -y pnpm@latest exec prisma generate --schema prisma/schema.local.prisma
+      npx -y pnpm@latest exec prisma db push --schema prisma/schema.local.prisma --skip-generate \
+        && say "Local database ready ✔ (data/postpilot.db)" \
+        || say "(the app will retry preparing the local database automatically on start)"
+    fi
   fi
 fi
 
