@@ -1,7 +1,7 @@
-// Local Mode schema — SQLite, zero configuration.
+// Local Mode schema - SQLite, zero configuration.
 // Used automatically when no DATABASE_URL is configured (data lives on the
-// person's computer). Mirrors the Postgres models minus Postgres-only types
-// (enums become TEXT, no @db.* attributes, client-side uuid defaults).
+// person's computer). Mirrors the Postgres models: enums become TEXT,
+// client-side uuid defaults, complete bidirectional relations.
 
 generator client {
   provider = "prisma-client-js"
@@ -14,36 +14,43 @@ datasource db {
 }
 
 model Agency {
-  id              String    @id @default(uuid())
-  email           String    @unique
+  id              String   @id @default(uuid())
+  email           String   @unique
   passwordHash    String
-  demoMode        Boolean   @default(true)
-  dbMode          String    @default("LOCAL")
+  demoMode        Boolean  @default(true)
+  dbMode          String   @default("LOCAL")
   dbUrlEnc        String?
   dbLabel         String?
-  schemaInstalled Boolean   @default(true)
-  onboarded       Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  schemaInstalled Boolean  @default(true)
+  onboarded       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  clients       Client[]
+  ghlConnection GhLConnection?
+  sessions      Session[]
+  tokenEvents   TokenEvent[]
 }
 
 model Session {
   id        String   @id @default(uuid())
   tokenHash String   @unique
   agencyId  String
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   expiresAt DateTime
 }
 
 model GhLConnection {
-  id              String    @id @default(uuid())
-  agencyId        String    @unique
-  mode            String    @default("DEMO")
+  id              String   @id @default(uuid())
+  agencyId        String   @unique
+  agency          Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  mode            String   @default("DEMO")
   clientId        String?
   clientSecretEnc String?
   accessTokenEnc  String?
   refreshTokenEnc String?
-  tokenType       String    @default("Agency")
+  tokenType       String   @default("Agency")
   expiresAt       DateTime?
   scope           String?
   locationId      String?
@@ -51,12 +58,13 @@ model GhLConnection {
   lastRefreshedAt DateTime?
   lastError       String?
   connectedAt     DateTime?
-  updatedAt       DateTime  @updatedAt
+  updatedAt       DateTime @updatedAt
 }
 
 model TokenEvent {
   id        String   @id @default(uuid())
   agencyId  String
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   kind      String
   detail    String?
   createdAt DateTime @default(now())
@@ -81,19 +89,21 @@ model Client {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   agencyId          String
+  agency            Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
 
-  platforms         ClientPlatform[]
-  products          Product[]
-  blackoutDates     BlackoutDate[]
-  posts             Post[]
-  mediaAssets       MediaAsset[]
-  platformAccounts  PlatformAccount[]
-  scheduledRuns     ScheduledRun[]
+  platforms        ClientPlatform[]
+  products         Product[]
+  blackoutDates    BlackoutDate[]
+  posts            Post[]
+  mediaAssets      MediaAsset[]
+  platformAccounts PlatformAccount[]
+  scheduledRuns    ScheduledRun[]
 }
 
 model ClientPlatform {
   id            String   @id @default(uuid())
   clientId      String
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   platform      String
   cadenceWeekly Int      @default(3)
   createdAt     DateTime @default(now())
@@ -102,6 +112,7 @@ model ClientPlatform {
 model Product {
   id          String @id @default(uuid())
   clientId    String
+  client      Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   name        String
   description String
 }
@@ -109,6 +120,7 @@ model Product {
 model BlackoutDate {
   id       String   @id @default(uuid())
   clientId String
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   date     DateTime
   reason   String
 }
@@ -116,6 +128,7 @@ model BlackoutDate {
 model PlatformAccount {
   id           String    @id @default(uuid())
   clientId     String
+  client       Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   locationId   String
   platform     String
   ghlAccountId String
@@ -126,19 +139,21 @@ model PlatformAccount {
 }
 
 model ScheduledRun {
-  id        String    @id @default(uuid())
-  clientId  String
+  id         String    @id @default(uuid())
+  clientId   String
+  client     Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   monthStart DateTime
-  status    String    @default("completed")
-  scheduled Int       @default(0)
-  failed    Int       @default(0)
-  detail    String?
-  createdAt DateTime  @default(now())
+  status     String    @default("completed")
+  scheduled  Int       @default(0)
+  failed     Int       @default(0)
+  detail     String?
+  createdAt  DateTime  @default(now())
 }
 
 model Post {
   id                String    @id @default(uuid())
   clientId          String
+  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   platform          String
   scheduledDate     DateTime
   time              String    @default("09:00")
@@ -159,18 +174,23 @@ model Post {
   title             String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+
+  media PostMedia[]
 }
 
 model PostMedia {
-  id           String @id @default(uuid())
+  id           String     @id @default(uuid())
   postId       String
+  post         Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
   mediaAssetId String
-  order        Int    @default(0)
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+  order        Int        @default(0)
 }
 
 model MediaAsset {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   clientId    String
+  client      Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
   kind        String
   fileName    String?
   url         String?
@@ -179,5 +199,7 @@ model MediaAsset {
   mimeType    String?
   sizeBytes   Int?
   youtubeId   String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime   @default(now())
+
+  usedInPosts PostMedia[]
 }
