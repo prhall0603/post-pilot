@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { controlDb } from "@/lib/dbMode";
 import { verifyPassword, hashPassword } from "@/lib/crypto";
 import { createSession, destroySession, getAuth } from "@/lib/auth";
 import { withTenantDb } from "@/lib/tenantDb";
@@ -42,9 +42,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
   }
 
-  try {
-    if (action === "register") {
-      const count = await prisma.agency.count();
+ try {
+   const prisma = await controlDb();
+   if (action === "register") {
+     const count = await prisma.agency.count();
       if (count > 0) {
         return NextResponse.json({ error: "Workspace already exists. Sign in instead." }, { status: 409 });
       }
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   try {
     const auth = await getAuth();
+    const prisma = await controlDb();
     const count = await prisma.agency.count();
     return NextResponse.json({
       authenticated: Boolean(auth),

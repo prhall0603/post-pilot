@@ -24,11 +24,10 @@ if not exist package.json (
     cd post-pilot
   ) else (
     echo   Cloning PostPilot from GitHub...
-    git clone https://github.com/prhall0603/post-pilot.git post-pilot || (
-      echo.
+    git clone https://github.com/prhall0603/post-pilot.git post-pilot
+    if errorlevel 1 (
       echo   Clone failed. Usually the repo is private: use 'gh auth login' once,
       echo   or make it public: GitHub - Settings - Danger Zone - Change visibility.
-      echo.
       pause
       exit /b 1
     )
@@ -51,21 +50,19 @@ if not exist .env.local (
 findstr /c:"DATABASE_URL=\"postgresql" .env.local >nul 2>nul
 if errorlevel 1 (
   echo.
-  set /p DB_URL=  Paste your database connection string now ^(or press Enter to set it later^):
-  if defined DB_URL call :saveenv "%DB_URL%"
+  echo   Press Enter to keep data on this computer (Local Mode - no accounts),
+  set /p DB_URL=  or paste a Supabase connection string to store data in the cloud:
+  call :saveenv "%DB_URL%"
 )
 
 node start-app.mjs
 goto :eof
 
 :saveenv
-call :writeenv %1
+set DB_URL=%~1
+if "%DB_URL%"=="" goto :eof
+powershell -NoProfile -Command "$c='%~1'; $p=Get-Content .env.local -Raw; $p=$p -replace '(?m)^DATABASE_URL=.*$', ('DATABASE_URL=\"' + $c + '\"'); Set-Content .env.local $p"
 findstr /c:"DATABASE_URL=\"postgresql" .env.local >nul 2>nul
 if errorlevel 1 goto :eof
 echo   DATABASE_URL saved to .env.local OK
-goto :eof
-
-:writeenv
-powershell -NoProfile -Command "$p=Get-Content .env.local -Raw; $p=$p -replace '(?m)^DATABASE_URL=.*$', ('DATABASE_URL=\"' + '\"' + '\"') ; Set-Content .env.local $p"
-powershell -NoProfile -Command "$c=\"%~1\"; $p=Get-Content .env.local -Raw; $p=$p -replace 'DATABASE_URL=\"\"', ('DATABASE_URL=\"' + $c + '\"'); Set-Content .env.local $p"
 goto :eof

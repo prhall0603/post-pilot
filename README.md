@@ -32,10 +32,17 @@ repo is private — run `gh auth login` once
 2. On the repo page: green **`<> Code`** button → **Download ZIP** → **Extract All…**
 3. Open the extracted folder and **double-click `START-APP.bat`**
 
-That opens a window that installs everything, asks for your **database
-connection string** (Supabase project → green **Connect** button → *Session
-pooler* URI → replace `[YOUR-PASSWORD]` with your real password; press Enter
-to skip and add it later), then launches the server.
+That opens a window that installs everything, then asks about your **database**:
+
+- **Press Enter → Local Mode (recommended to start)** — data is stored in a
+  local file on this computer. No Supabase, no accounts, nothing else.
+- Or paste a **Supabase connection string** to store data in the cloud instead
+  (Supabase project → green **Connect** button → Session pooler URI → replace
+  `[YOUR-PASSWORD]` with your real password).
+
+Then it launches the server. Local Mode data lives in `data/postpilot.db`
+next to the app — connect Supabase later via **Agency settings → Database**
+if you move to the cloud.
 
 PowerShell alternative (clones + runs in one line, needs Git for Windows):
 

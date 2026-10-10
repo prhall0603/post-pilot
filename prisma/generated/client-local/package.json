@@ -1,0 +1,5 @@
+{
+  "name": "postpilot-client-local",
+  "main": "index.js",
+  "types": "index.d.ts"
+}

@@ -2,8 +2,8 @@
 // Single-agency workspace: first registration creates the workspace, later
 // sign-ups are rejected.
 
-import { prisma } from "@/lib/prisma";
 import { sha256, randomToken } from "@/lib/crypto";
+import { controlDb } from "@/lib/dbMode";
 import { cookies } from "next/headers";
 
 export const SESSION_COOKIE = "pp_session";
@@ -19,6 +19,7 @@ export interface AgencyAuth {
 
 /** Create a session for an agency and set the httpOnly cookie. */
 export async function createSession(agencyId: string): Promise<void> {
+  const prisma = await controlDb();
   const token = randomToken(32);
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 3600 * 1000);
   await prisma.session.create({
@@ -36,6 +37,7 @@ export async function createSession(agencyId: string): Promise<void> {
 
 /** Resolve the current agency from the session cookie; null when signed out. */
 export async function getAuth(): Promise<AgencyAuth | null> {
+  const prisma = await controlDb();
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -59,6 +61,7 @@ export async function getAuth(): Promise<AgencyAuth | null> {
 
 /** Sign out: delete session row + clear cookie. */
 export async function destroySession(): Promise<void> {
+  const prisma = await controlDb();
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (token) {

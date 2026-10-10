@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { prisma as tenant, evictTenantClient } from "@/lib/tenantDb";
-import { ghlConfigured, validatePitToken, connectPit } from "@/lib/ghl";
+import { controlDb } from "@/lib/dbMode";
+import { getConnectionMode, ghlConfigured, validatePitToken, connectPit } from "@/lib/ghl";
 import { encrypt } from "@/lib/crypto";
-import { getConnectionMode } from "@/lib/ghl";
 
 /**
  * POST /api/onboarding/finish — completes workspace onboarding.
@@ -44,6 +42,7 @@ export async function POST(req: NextRequest) {
   }
 
   const finalMode = await getConnectionMode(agencyId);
+  const prisma = await controlDb();
   await prisma.agency.update({ where: { id: agencyId }, data: { onboarded: true } });
   return NextResponse.json({ ok: true, ghlMode: finalMode });
 }
@@ -53,6 +52,7 @@ export async function GET() {
   const guard = await requireAuth();
   if ("response" in guard) return guard.response;
   const mode = await getConnectionMode(guard.auth.agencyId);
+  const prisma = await controlDb();
   const agency = await prisma.agency.findUnique({
     where: { id: guard.auth.agencyId },
     select: { dbMode: true, dbLabel: true, onboarded: true },
@@ -65,7 +65,4 @@ export async function GET() {
   });
 }
 
-// keep tenant import referenced for future finish-time tenant work
-void tenant;
-void evictTenantClient;
 void encrypt;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { controlDb } from "@/lib/dbMode";
 import { encrypt, decrypt } from "@/lib/crypto";
 import { installClientSchema } from "@/lib/schemaInstaller";
 import { withTenantDb, evictTenantClient } from "@/lib/tenantDb";
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
   const guard = await requireAuth();
   if ("response" in guard) return guard.response;
   const agencyId = guard.auth.agencyId;
+  const prisma = await controlDb();
   const input = (await req.json().catch(() => ({}))) as { mode?: string; dbUrl?: string; label?: string };
 
   if (input.mode === "HOSTED") {

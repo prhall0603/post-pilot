@@ -80,7 +80,7 @@ db_set() { grep -q 'DATABASE_URL="postgresql' .env.local 2>/dev/null; }
 if db_set; then
   say "DATABASE_URL already configured OK"
 else
-  printf '  Paste your database connection string now (or press Enter to set it later): '
+  printf '  Press Enter now to keep data on this computer (Local Mode, zero accounts),\n  or paste a Supabase connection string to store data in the cloud instead: '
   DB_URL=""
   if [ -t 0 ]; then
     read -r DB_URL || true
@@ -106,7 +106,13 @@ else
       say "That does not look like a postgres:// string - skipped. Fill DATABASE_URL in .env.local by hand."
     fi
   else
-    say "Skipped. Fill DATABASE_URL in .env.local any time (instructions below)."
+    say "Local Mode selected ✔ — data will be stored on this computer (no Supabase needed)."
+    say "Connect a Supabase project later via the app's onboarding wizard if you change your mind."
+    REGION="${PP_POOLER_REGION:-}"
+    say "Generating the local database…"
+    npx -y pnpm@latest exec prisma generate --schema prisma/schema.local.prisma >/dev/null 2>&1 || true
+    npx -y pnpm@latest exec prisma db push --schema prisma/schema.local.prisma --skip-generate >/dev/null 2>&1 \
+      || say "(the app will finish preparing the local database on first start)"
   fi
 fi
 

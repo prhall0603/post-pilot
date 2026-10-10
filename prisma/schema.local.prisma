@@ -1,0 +1,183 @@
+// Local Mode schema — SQLite, zero configuration.
+// Used automatically when no DATABASE_URL is configured (data lives on the
+// person's computer). Mirrors the Postgres models minus Postgres-only types
+// (enums become TEXT, no @db.* attributes, client-side uuid defaults).
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client-local"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../data/postpilot.db"
+}
+
+model Agency {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String
+  demoMode        Boolean   @default(true)
+  dbMode          String    @default("LOCAL")
+  dbUrlEnc        String?
+  dbLabel         String?
+  schemaInstalled Boolean   @default(true)
+  onboarded       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  agencyId  String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model GhLConnection {
+  id              String    @id @default(uuid())
+  agencyId        String    @unique
+  mode            String    @default("DEMO")
+  clientId        String?
+  clientSecretEnc String?
+  accessTokenEnc  String?
+  refreshTokenEnc String?
+  tokenType       String    @default("Agency")
+  expiresAt       DateTime?
+  scope           String?
+  locationId      String?
+  userId          String?
+  lastRefreshedAt DateTime?
+  lastError       String?
+  connectedAt     DateTime?
+  updatedAt       DateTime  @updatedAt
+}
+
+model TokenEvent {
+  id        String   @id @default(uuid())
+  agencyId  String
+  kind      String
+  detail    String?
+  createdAt DateTime @default(now())
+}
+
+model Client {
+  id                String   @id @default(uuid())
+  name              String
+  industry          String
+  website           String?
+  locationId        String?
+  brandVoice        String   @default("professional")
+  brandVoiceNotes   String?
+  targetAudience    String?
+  serviceArea       String?
+  logoUrl           String?
+  planStatus        String   @default("NOT_GENERATED")
+  generatedUntil    DateTime?
+  schedulingCursor  DateTime?
+  aiTokensEstimated Int      @default(0)
+  aiCostEstimated   Float    @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  agencyId          String
+
+  platforms         ClientPlatform[]
+  products          Product[]
+  blackoutDates     BlackoutDate[]
+  posts             Post[]
+  mediaAssets       MediaAsset[]
+  platformAccounts  PlatformAccount[]
+  scheduledRuns     ScheduledRun[]
+}
+
+model ClientPlatform {
+  id            String   @id @default(uuid())
+  clientId      String
+  platform      String
+  cadenceWeekly Int      @default(3)
+  createdAt     DateTime @default(now())
+}
+
+model Product {
+  id          String @id @default(uuid())
+  clientId    String
+  name        String
+  description String
+}
+
+model BlackoutDate {
+  id       String   @id @default(uuid())
+  clientId String
+  date     DateTime
+  reason   String
+}
+
+model PlatformAccount {
+  id           String    @id @default(uuid())
+  clientId     String
+  locationId   String
+  platform     String
+  ghlAccountId String
+  accountName  String
+  avatarUrl    String?
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+}
+
+model ScheduledRun {
+  id        String    @id @default(uuid())
+  clientId  String
+  monthStart DateTime
+  status    String    @default("completed")
+  scheduled Int       @default(0)
+  failed    Int       @default(0)
+  detail    String?
+  createdAt DateTime  @default(now())
+}
+
+model Post {
+  id                String    @id @default(uuid())
+  clientId          String
+  platform          String
+  scheduledDate     DateTime
+  time              String    @default("09:00")
+  body              String
+  imagePrompt       String?
+  videoScript       String?
+  hashtags          String?
+  status            String    @default("DRAFT")
+  contentTopic      String
+  category          String
+  mediaRequired     Boolean   @default(false)
+  ghlAccountId      String?
+  failureReason     String?
+  failureDetail     String?
+  scheduledAttempts Int       @default(0)
+  scheduledAt       DateTime?
+  ghlPostId         String?
+  title             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model PostMedia {
+  id           String @id @default(uuid())
+  postId       String
+  mediaAssetId String
+  order        Int    @default(0)
+}
+
+model MediaAsset {
+  id          String   @id @default(uuid())
+  clientId    String
+  kind        String
+  fileName    String?
+  url         String?
+  ghlUrl      String?
+  ghlMediaId  String?
+  mimeType    String?
+  sizeBytes   Int?
+  youtubeId   String?
+  createdAt   DateTime @default(now())
+}
