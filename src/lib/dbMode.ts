@@ -46,23 +46,25 @@ function createLocal(): PrismaClient {
   });
 }
 
+function runPrismaLocal(args: string[]): void {
+  const base = ["-y", "pnpm@latest", "exec", "prisma"];
+  const r = spawnSync(
+    "npx",
+    base.concat(args),
+    { stdio: ["ignore", "pipe", "pipe"], shell: true }
+  );
+  const out = (r.stdout ? Buffer.from(r.stdout).toString("utf8") : "");
+  const err = (r.stderr ? Buffer.from(r.stderr).toString("utf8") : "");
+  if (r.status !== 0) {
+    const tail = (err || out).split("\n").filter(Boolean).slice(-6).join(" | ").slice(0, 400);
+    throw new Error(`prisma ${args[0]} (local) failed${tail ? ": " + tail : " (no output)"}`);
+  }
+}
+
 /** Install-time / boot-time local DB preparation (generate + push schema). */
 export async function prepareLocalDb(): Promise<void> {
-  const base = ["-y", "pnpm@latest", "exec", "prisma"];
-
-  const gen = spawnSync(
-    "npx",
-    base.concat(["generate", "--schema", "prisma/schema.local.prisma"]),
-    { stdio: "inherit", shell: true }
-  );
-  if (gen.status !== 0) throw new Error("prisma generate (local) failed");
-
-  const push = spawnSync(
-    "npx",
-    base.concat(["db", "push", "--schema", "prisma/schema.local.prisma", "--skip-generate"]),
-    { stdio: "inherit", shell: true }
-  );
-  if (push.status !== 0) throw new Error("prisma db push (local) failed");
+  runPrismaLocal(["generate", "--schema", "prisma/schema.local.prisma"]);
+  runPrismaLocal(["db", "push", "--schema", "prisma/schema.local.prisma", "--skip-generate"]);
 }
 
 export async function initLocalDb(): Promise<PrismaClient> {
