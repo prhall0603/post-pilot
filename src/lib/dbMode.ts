@@ -1,7 +1,4 @@
 import { DATABASE_URL, prisma as postgresControl } from "@/lib/prisma";
-import { createRequire } from "module";
-import path from "path";
-import { spawnSync } from "child_process";
 import type { PrismaClient } from "@prisma/client";
 
 /**
@@ -18,63 +15,74 @@ export const isLocalMode = () => RESOLVED_DB_MODE === "local";
 
 let localClientSingleton: PrismaClient | null = null;
 
-/**
- * Load the Local Mode SQLite client from the generated folder - WITHOUT
- * webpack static-bundling issues. createRequire resolves the real CommonJS
- * generated client at runtime; the cache is busted so a re-generated folder
- * (installed after first boot) is picked up on the next load.
+/*
+ * Runtime-only dynamic import - INVISIBLE to webpack (new Function wrapper),
+ * so no node builtins ever enter bundled graphs. Resolves relative to the
+ * real filesystem (absolute URLs), never the compiled bundle location.
  */
-function requireGenClient(): { PrismaClient: new (opts: any) => PrismaClient } {
-  const pkgJson = path.join(
-    process.cwd(),
-    "prisma",
-    "generated",
-    "client-local",
-    "package.json",
-  );
-  const req = createRequire(pkgJson);
-  const mainPath = req.resolve(".");
-  delete (req.cache as Record<string, unknown>)[mainPath];
-  return req(mainPath) as { PrismaClient: new (opts: any) => PrismaClient };
+function dynamicImport(s: string): Promise<any> {
+  return new Function("s", "return import(s)")(s);
 }
 
-function createLocal(): PrismaClient {
-  const mod = requireGenClient();
-  return new mod.PrismaClient({
+async function loadBuiltin(name: string): Promise<any> {
+  const mod = await dynamicImport(name);
+  return mod.default ? Object.assign(mod.default, mod) : mod;
+}
+
+function genIndexPath(): string {
+  return (process.cwd().replace(/\\/g, "/") + "/prisma/generated/client-local/index.js");
+}
+
+/*
+ * Load the generated Local Mode client through createRequire (real Node
+ * require, not webpack's) - with a cache-bust so an installer-regenerated
+ * folder is picked up on the next load.
+ */
+async function requireGenClient(): Promise<{ PrismaClient: new (opts: any) => PrismaClient }> {
+  const nodeModule = await loadBuiltin("module");
+  const req = nodeModule.createRequire(genIndexPath());
+  delete req.cache[genIndexPath()];
+  return req(genIndexPath());
+}
+
+async function createLocal(): Promise<PrismaClient> {
+  const mod = await requireGenClient();
+  const Ctor = mod.PrismaClient;
+  return new Ctor({
     datasources: { db: { url: "file:../data/postpilot.db" } },
     log: [],
   });
 }
 
-function runPrismaLocal(args: string[]): void {
-  const base = ["-y", "pnpm@latest", "exec", "prisma"];
-  const r = spawnSync(
-    "npx",
-    base.concat(args),
-    { stdio: ["ignore", "pipe", "pipe"], shell: true }
-  );
-  const out = (r.stdout ? Buffer.from(r.stdout).toString("utf8") : "");
-  const err = (r.stderr ? Buffer.from(r.stderr).toString("utf8") : "");
-  if (r.status !== 0) {
-    const tail = (err || out).split("\n").filter(Boolean).slice(-6).join(" | ").slice(0, 400);
-    throw new Error(`prisma ${args[0]} (local) failed${tail ? ": " + tail : " (no output)"}`);
-  }
-}
-
 /** Install-time / boot-time local DB preparation (generate + push schema). */
 export async function prepareLocalDb(): Promise<void> {
-  runPrismaLocal(["generate", "--schema", "prisma/schema.local.prisma"]);
-  runPrismaLocal(["db", "push", "--schema", "prisma/schema.local.prisma", "--skip-generate"]);
+  const childProcess = await loadBuiltin("child_process");
+  const base = ["-y", "pnpm@latest", "exec", "prisma"];
+
+  const gen = childProcess.spawnSync(
+    "npx",
+    base.concat(["generate", "--schema", "prisma/schema.local.prisma"]),
+    { stdio: "inherit", shell: true }
+  );
+  if (gen.status !== 0) throw new Error("prisma generate (local) failed");
+
+  const push = childProcess.spawnSync(
+    "npx",
+    base.concat(["db", "push", "--schema", "prisma/schema.local.prisma", "--skip-generate"]),
+    { stdio: "inherit", shell: true }
+  );
+  if (push.status !== 0) throw new Error("prisma db push (local) failed");
 }
 
 export async function initLocalDb(): Promise<PrismaClient> {
   if (!localClientSingleton) {
     try {
-      localClientSingleton = createLocal();
-    } catch {
+      localClientSingleton = await createLocal();
+    } catch (e) {
+      if (!/not prepared/i.test(String(e instanceof Error ? e.message : e))) throw e;
       // Stub still in place (pre-install) - prepare, then load the real client.
       await prepareLocalDb();
-      localClientSingleton = createLocal();
+      localClientSingleton = await createLocal();
     }
   }
   return localClientSingleton;
