@@ -8,7 +8,7 @@
 // GET /oauth/replyUser?locationId={locationId} using the agency token —
 // never the raw agency token itself.
 
-import { prisma } from "@/lib/prisma";
+import { controlDb } from "@/lib/dbMode";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { acquire, backoffFor, sleep, noteRateLimited } from "@/lib/rateLimiter";
 
@@ -40,6 +40,7 @@ export function ghlAuthorizeUrl(origin: string): string {
 }
 
 async function getConn(agencyId: string) {
+  const prisma = await controlDb();
   const conn = await prisma.ghLConnection.findUnique({ where: { agencyId } });
   if (!conn) throw new Error("GHL not connected");
   return conn;
@@ -47,6 +48,7 @@ async function getConn(agencyId: string) {
 
 /** Current connection mode for an agency ("DEMO" | "PIT" | "LIVE" | null unconnected). */
 export async function getConnectionMode(agencyId: string): Promise<"DEMO" | "PIT" | "LIVE" | null> {
+  const prisma = await controlDb();
   const conn = await prisma.ghLConnection.findUnique({
     where: { agencyId },
     select: { mode: true },
@@ -72,6 +74,7 @@ export async function exchangeCode(
   clientSecret: string,
   redirectUri: string
 ): Promise<void> {
+  const prisma = await controlDb();
   const res = await fetch(`${GHL_BASE}/oauth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -122,6 +125,7 @@ export async function exchangeCode(
 
 /** Refresh the agency token (LIVE mode); logs a TokenEvent either way. */
 export async function refreshAgencyToken(agencyId: string): Promise<void> {
+  const prisma = await controlDb();
   const conn = await getConn(agencyId);
   if (conn.mode !== "LIVE") return; // demo tokens never expire
   const refreshToken = decrypt(conn.refreshTokenEnc);
@@ -492,6 +496,7 @@ export async function validatePitToken(
 
 /** Store a validated PIT connection (encrypted at rest). */
 export async function connectPit(agencyId: string, token: string, sample?: { id: string; name: string }): Promise<void> {
+  const prisma = await controlDb();
   await prisma.ghLConnection.upsert({
     where: { agencyId },
     create: {
